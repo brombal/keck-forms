@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "jsx": "react-jsx",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom"],
+    "types": ["node", "jest"],
+    "paths": {
+      "keck-forms/*": ["./src/*"]
+    }
+  }
+}
