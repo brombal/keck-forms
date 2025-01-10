@@ -1,26 +1,26 @@
 import { atomic, derive, unwrap } from 'keck';
-import type { KeckFormBase, KeckFormState } from 'keck-forms/KeckForm';
-import type { StringPath, ValueAtPath } from 'keck-forms/types';
-import { get } from 'keck-forms/util/get';
 import { isEmpty, isEqual, set } from 'lodash-es';
+import type { KeckFormBase, KeckFormState } from './KeckForm';
+import type { ObjectOrUnknown, StringPath, ValueAtPath } from './types';
+import { get } from './util/get';
 
 export abstract class KeckFieldBase<
-  TFormInput extends object,
+  TFormInput extends ObjectOrUnknown,
   TStringPath extends StringPath<TFormInput>,
 > {
   constructor(
-    public readonly form: KeckFormBase<TFormInput, any>,
-    protected readonly formState: KeckFormState<TFormInput, any>,
+    public readonly form: KeckFormBase<TFormInput, unknown>,
+    protected readonly formState: KeckFormState<TFormInput, unknown>,
     public readonly path: TStringPath,
   ) {}
 
-  get value(): ValueAtPath<TFormInput, TStringPath> {
-    return get(this.formState.values, this.path) as ValueAtPath<TFormInput, TStringPath>;
+  get value(): TFormInput extends object ? ValueAtPath<TFormInput, TStringPath> : unknown {
+    return get(this.formState.values, this.path) as any;
   }
 
   set value(value: ValueAtPath<TFormInput, TStringPath>) {
     atomic(() => {
-      set(this.formState.values, this.path, value);
+      set(this.formState.values as any, this.path, value);
       this.form.validate();
     });
   }
@@ -100,6 +100,6 @@ export abstract class KeckFieldBase<
 }
 
 export class KeckField<
-  TFormInput extends object,
+  TFormInput extends ObjectOrUnknown,
   TStringPath extends StringPath<TFormInput>,
 > extends KeckFieldBase<TFormInput, TStringPath> {}

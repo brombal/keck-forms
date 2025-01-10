@@ -1,6 +1,6 @@
-import type { KeckField } from 'keck-forms/KeckField';
-import type { KeckFieldArray } from 'keck-forms/KeckFieldArray';
-import type { KeckFieldObject } from 'keck-forms/KeckFieldObject';
+import type { KeckField } from './KeckField';
+import type { KeckFieldArray } from './KeckFieldArray';
+import type { KeckFieldObject } from './KeckFieldObject';
 
 export type StringPath<T> = T extends Array<infer _>
   ? `${number}` | `${number}.${StringPath<T[number]>}`
@@ -26,34 +26,35 @@ export type ValueAtPath<TValue, TPropString extends string> = TPropString extend
         ? TValue[TPropString]
         : never;
 
-export type GetFieldFn<TFormInput extends object | unknown> = TFormInput extends object
-  ? <TStringPath extends StringPath<TFormInput>>(
-      path: TStringPath,
-    ) => KeckFieldForPath<TFormInput, TStringPath>
-  : <TFieldType>(path: string) => TypedKeckField<TFieldType>;
+export type ObjectOrUnknown = object | unknown;
 
-export type FormValidatorFn<TInput extends object, TOutput> = (
-  input: TInput,
+export type GetFormFieldFn<TFormInput extends ObjectOrUnknown> = <
+  TStringPath extends StringPath<TFormInput>,
+>(
+  path: TStringPath,
+) => KeckFieldForPath<TFormInput, TStringPath>;
+
+export type GetFieldFn<TFormInput extends ObjectOrUnknown> = GetFormFieldFn<TFormInput>;
+
+export type FormValidatorFn<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
+> = (
+  input: TFormInput,
   setError: (
-    field: StringPath<TInput>,
+    field: StringPath<TFormInput>,
     error: string | null | undefined | false,
     action?: 'push' | 'unshift' | 'replace',
   ) => void,
-) => TOutput;
-
-export interface TypedKeckField<TValue = unknown> {
-  path: string;
-  value: TValue;
-  touched: boolean;
-  readonly errors: string[];
-  readonly dirty: boolean;
-}
+) => TFormOutput | null;
 
 export type KeckFieldForPath<
-  TFormInput extends object,
+  TFormInput extends ObjectOrUnknown,
   TStringPath extends StringPath<TFormInput>,
-> = ValueAtPath<TFormInput, TStringPath> extends Array<infer _TFieldType>
-  ? KeckFieldArray<TFormInput, TStringPath>
-  : ValueAtPath<TFormInput, TStringPath> extends object
-    ? KeckFieldObject<TFormInput, TStringPath>
-    : KeckField<TFormInput, TStringPath>;
+> = TFormInput extends object
+  ? ValueAtPath<TFormInput, TStringPath> extends Array<infer _TFieldType>
+    ? KeckFieldArray<TFormInput, TStringPath>
+    : ValueAtPath<TFormInput, TStringPath> extends object
+      ? KeckFieldObject<TFormInput, TStringPath>
+      : KeckField<TFormInput, TStringPath>
+  : unknown;

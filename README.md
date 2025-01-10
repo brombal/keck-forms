@@ -180,7 +180,7 @@ function TextField({ fieldPath }: { fieldPath: string }) {
 ### `useForm`
 
 ```tsx
-function useForm<TInput extends object, TOutput>(options: {
+function useForm<TInput extends object, TOutput extends object>(options: {
   initial: TInput;
   validate: FormValidatorFn<TInput, TOutput>;
 }): {

@@ -1,21 +1,27 @@
 import { atomic, derive, focus, observe, peek, unwrap } from 'keck';
-import { KeckField } from 'keck-forms/KeckField';
-import { KeckFieldArray } from 'keck-forms/KeckFieldArray';
-import { KeckFieldObject } from 'keck-forms/KeckFieldObject';
-import type { FormValidatorFn, KeckFieldForPath, StringPath } from 'keck-forms/types';
-import { get } from 'keck-forms/util/get';
 import { cloneDeep } from 'lodash-es';
+import { KeckField } from './KeckField';
+import { KeckFieldArray } from './KeckFieldArray';
+import { KeckFieldObject } from './KeckFieldObject';
+import type { FormValidatorFn, KeckFieldForPath, ObjectOrUnknown, StringPath } from './types';
+import { get } from './util/get';
 
-export interface KeckFormState<TFormInput extends object, TFormOutput extends object> {
+export interface KeckFormState<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
+> {
   initial: TFormInput;
   values: TFormInput;
-  output: TFormOutput;
+  output: TFormOutput | null;
   touched: any;
   errors: Record<string, string[]>;
   validator: FormValidatorFn<TFormInput, TFormOutput>;
 }
 
-export abstract class KeckFormBase<TFormInput extends object, TFormOutput extends object> {
+export abstract class KeckFormBase<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
+> {
   protected state: KeckFormState<TFormInput, TFormOutput>;
 
   constructor(state: KeckFormState<TFormInput, TFormOutput>, callback?: () => void) {
@@ -72,13 +78,15 @@ export abstract class KeckFormBase<TFormInput extends object, TFormOutput extend
   ): KeckFieldForPath<TFormInput, TStringPath> {
     return peek(() => {
       const value = get(this.state.values, path);
+      // TFormInput could be 'unknown', which KeckFieldArray and KeckFieldObject won't accept.
+      // But we know the type, and the field() method return type is explicit, so we can cast values as any to ignore TS errors.
       if (Array.isArray(value))
-        return new KeckFieldArray(this, this.state, path) as KeckFieldForPath<
+        return new KeckFieldArray(this as any, this.state as any, path as any) as KeckFieldForPath<
           TFormInput,
           TStringPath
         >;
       if (typeof value === 'object')
-        return new KeckFieldObject(this, this.state, path) as KeckFieldForPath<
+        return new KeckFieldObject(this as any, this.state as any, path as any) as KeckFieldForPath<
           TFormInput,
           TStringPath
         >;
@@ -92,10 +100,10 @@ export abstract class KeckFormBase<TFormInput extends object, TFormOutput extend
   }
 }
 
-export class KeckForm<TFormInput extends object, TFormOutput extends object> extends KeckFormBase<
-  TFormInput,
-  TFormOutput
-> {
+export class KeckForm<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
+> extends KeckFormBase<TFormInput, TFormOutput> {
   constructor(options: {
     initial: TFormInput;
     validate: FormValidatorFn<TFormInput, TFormOutput>;
@@ -139,8 +147,8 @@ export class KeckForm<TFormInput extends object, TFormOutput extends object> ext
 }
 
 export class KeckFormObserver<
-  TFormInput extends object,
-  TFormOutput extends object,
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
 > extends KeckFormBase<TFormInput, TFormOutput> {
   constructor(
     private ownerForm: KeckForm<TFormInput, TFormOutput>,

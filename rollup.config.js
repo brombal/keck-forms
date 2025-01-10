@@ -1,21 +1,20 @@
+import { dts } from 'rollup-plugin-dts';
 import ts from 'rollup-plugin-ts';
 
 export default [
   {
     input: 'src/index.ts',
     output: {
-      file: './index.js',
+      file: 'dist/index.js',
       sourcemap: true,
     },
     plugins: [ts()],
   },
   {
-    input: 'src/react.ts',
+    input: 'src/index.ts',
     output: {
-      file: './react.js',
-      sourcemap: true,
+      file: 'dist/index.d.ts',
     },
-    external: ['keck', 'react'],
-    plugins: [ts()],
+    plugins: [dts()],
   },
 ];

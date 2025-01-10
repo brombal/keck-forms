@@ -40,7 +40,7 @@ describe('output', () => {
     const formObserver = form.observe(mockFn).focus();
 
     // observe name field only
-    void formObserver.output.name;
+    void formObserver.output?.name;
 
     form.field('name').value = 'Jane';
     expect(mockFn).toHaveBeenCalledTimes(1);

@@ -1,5 +1,5 @@
-import { KeckFieldBase } from 'keck-forms/KeckField';
-import type { KeckFieldForPath, StringPath } from 'keck-forms/types';
+import { KeckFieldBase } from './KeckField';
+import type { KeckFieldForPath, StringPath } from './types';
 
 export class KeckFieldArray<
   TFormInput extends object,
