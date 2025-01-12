@@ -1,26 +1,24 @@
-import { useContext } from 'react';
-import type { KeckForm } from './KeckForm';
-import type { GetFormFieldFn, ObjectOrUnknown } from './types';
+import { useObserver } from 'keck/react';
+import { useContext, useRef } from 'react';
+import { KeckForm, type KeckFormOptionsInternal } from './KeckForm';
+import type { ObjectOrUnknown } from './types';
 import { keckFormContext } from './useForm';
-
-export type UseFormContextReturn<
-  TFormInput extends ObjectOrUnknown,
-  TFormOutput extends ObjectOrUnknown,
-> = {
-  form: KeckForm<TFormInput, TFormOutput>;
-  field: GetFormFieldFn<TFormInput>;
-};
 
 export function useFormContext<
   TFormInput extends ObjectOrUnknown = unknown,
   TFormOutput extends ObjectOrUnknown = unknown,
->(): UseFormContextReturn<TFormInput, TFormOutput> {
+>(): KeckForm<TFormInput, TFormOutput> {
   const form = useContext(keckFormContext) as KeckForm<TFormInput, TFormOutput>;
   if (!form) {
-    throw new Error('useFormContext must be used within a FormProvider');
+    throw new Error('useFormContext must be used within a FormProvider.');
   }
-  return {
-    form: form,
-    field: form.field,
-  };
+
+  const state = useObserver(form.state);
+
+  const formRef = useRef<KeckForm<TFormInput, TFormOutput>>(null);
+  if (!formRef.current) {
+    formRef.current = new KeckForm({ state } as KeckFormOptionsInternal<TFormInput, TFormOutput>);
+  }
+
+  return formRef.current;
 }

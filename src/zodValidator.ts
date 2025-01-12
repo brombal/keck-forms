@@ -1,5 +1,6 @@
 import type { z } from 'zod';
-import type { FormValidatorFn, StringPath } from './types';
+import type { FormValidatorFn } from './KeckForm';
+import type { StringPath } from './types';
 
 export const zodValidator = <TInput extends object, TOutput extends object>(
   schema: z.Schema<TOutput>,

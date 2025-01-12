@@ -1,15 +1,34 @@
-import { atomic, derive, unwrap } from 'keck';
+import { atomic, derive, shallowCompare, unwrap } from 'keck';
 import { isEmpty, isEqual, set } from 'lodash-es';
-import type { KeckFormBase, KeckFormState } from './KeckForm';
+import type { KeckFieldArray } from './KeckFieldArray';
+import type { KeckFieldObject } from './KeckFieldObject';
+import type { KeckForm, KeckFormState } from './KeckForm';
 import type { ObjectOrUnknown, StringPath, ValueAtPath } from './types';
 import { get } from './util/get';
+
+export type KeckFieldForPath<
+  TFormInput extends ObjectOrUnknown,
+  TStringPath extends StringPath<TFormInput>,
+> = TFormInput extends object
+  ? ValueAtPath<TFormInput, TStringPath> extends Array<infer _TFieldType>
+    ? KeckFieldArray<TFormInput, TStringPath>
+    : ValueAtPath<TFormInput, TStringPath> extends object
+      ? KeckFieldObject<TFormInput, TStringPath>
+      : KeckField<TFormInput, TStringPath>
+  : KeckField<TFormInput, TStringPath>;
+
+/**
+ * Used to represent a KeckField with an explicit type (instead of inferring a type from a form input structure
+ * and a string path).
+ */
+export type TypedKeckField<TType> = Omit<KeckFieldBase<unknown, ''>, 'value'> & { value: TType };
 
 export abstract class KeckFieldBase<
   TFormInput extends ObjectOrUnknown,
   TStringPath extends StringPath<TFormInput>,
 > {
   constructor(
-    public readonly form: KeckFormBase<TFormInput, unknown>,
+    public readonly form: KeckForm<TFormInput, unknown>,
     protected readonly formState: KeckFormState<TFormInput, unknown>,
     public readonly path: TStringPath,
   ) {}
@@ -41,6 +60,7 @@ export abstract class KeckFieldBase<
       const path = this.path.split('.');
       for (let i = path.length - 1; i >= 0; i--) {
         path.pop();
+        // TODO: could be more performant by starting from the top and only descending if object?
         if (get(this.formState.touched, path.join('.')) === true) return true;
       }
 
@@ -78,24 +98,11 @@ export abstract class KeckFieldBase<
   }
 
   get errors(): string[] {
-    return (this.formState.errors[this.path] as string[]) || [];
+    return derive(() => (this.formState.errors[this.path] as string[]) || [], shallowCompare);
   }
 
   get isValid(): boolean {
     return derive(() => this.errors.length === 0);
-  }
-
-  // protected getFieldState(path: string = this.path, create = true): any {
-  //   let state = get(this.formState.state, path)?.[fieldState];
-  //   if (!state && create) {
-  //     state = {};
-  //     set(this.formState.state, path, { [fieldState]: state });
-  //   }
-  //   return get(this.formState.state, path)?.[fieldState];
-  // }
-
-  protected getParentPath(): string {
-    return this.path.split('.').slice(0, -1).join('.');
   }
 }
 

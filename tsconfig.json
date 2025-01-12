@@ -4,7 +4,7 @@
     "module": "esnext",
     "jsx": "react-jsx",
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

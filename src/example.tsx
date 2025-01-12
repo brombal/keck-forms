@@ -1,8 +1,8 @@
-import { useForm } from 'keck-forms/useForm';
-import { useFormContext } from 'keck-forms/useFormContext';
-import { zodValidator } from 'keck-forms/zodValidator';
 import { useState } from 'react';
 import { z } from 'zod';
+import { useForm } from './useForm';
+import { useFormContext } from './useFormContext';
+import { zodValidator } from './zodValidator';
 
 enum SkillLevel {
   Beginner = 'beginner',
@@ -60,8 +60,8 @@ function useJobApplicationForm() {
   return useFormContext<JobApplicationInput, JobApplicationOutput>();
 }
 
-function JobApplication() {
-  const { field, FormProvider } = useForm<JobApplicationInput, JobApplicationOutput>({
+function _JobApplication() {
+  const { form, FormProvider } = useForm<JobApplicationInput, JobApplicationOutput>({
     initial: initialJobApplicationForm,
     validate: zodValidator(jobApplicationSchema),
   });
@@ -73,19 +73,19 @@ function JobApplication() {
 
         {/* Example of using raw inputs */}
         <input
-          value={field('profile.name').value}
-          onChange={(e) => (field('profile.name').value = e.target.value)}
-          onBlur={() => (field('profile.name').touched = true)}
+          value={form.field('profile.name').value}
+          onChange={(e) => (form.field('profile.name').value = e.target.value)}
+          onBlur={() => (form.field('profile.name').touched = true)}
         />
         <input
-          value={field('profile.email').value}
-          onChange={(e) => (field('profile.email').value = e.target.value)}
-          onBlur={() => (field('profile.email').touched = true)}
+          value={form.field('profile.email').value}
+          onChange={(e) => (form.field('profile.email').value = e.target.value)}
+          onBlur={() => (form.field('profile.email').touched = true)}
         />
         <input
-          value={field('profile.phone').value}
-          onChange={(e) => (field('profile.phone').value = e.target.value)}
-          onBlur={() => (field('profile.phone').touched = true)}
+          value={form.field('profile.phone').value}
+          onChange={(e) => (form.field('profile.phone').value = e.target.value)}
+          onBlur={() => (form.field('profile.phone').touched = true)}
         />
       </section>
 
@@ -100,9 +100,9 @@ function JobApplication() {
  * An example form sub-component using raw inputs.
  */
 function SkillsForm() {
-  const { field } = useJobApplicationForm();
+  const form = useJobApplicationForm();
 
-  const skillsField = field('skills');
+  const skillsField = form.field('skills');
 
   return (
     <section>
@@ -118,6 +118,20 @@ function SkillsForm() {
     </section>
   );
 }
+
+// interface Test<T extends object | unknown> {
+//   // If T is unknown, then the generic simply specifies the return type.
+//   // If T is known, then the generic must extend SomeType<T>
+//   getValue: unknown extends T ? <TReturn>(key: string) => TReturn : <TKey extends keyof T>(key: TKey) => T[TKey];
+// }
+//
+// declare const t1: Test<unknown>;
+// t1.getValue<number>('anything').toFixed();
+//
+// declare const t2: Test<{ a: number; b: string }>;
+// t2.getValue('a').toFixed();
+// t2.getValue('b').toUpperCase();
+// t2.getValue('c'); // error, c is not key
 
 // Reusable field examples
 

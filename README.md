@@ -185,7 +185,7 @@ function useForm<TInput extends object, TOutput extends object>(options: {
   validate: FormValidatorFn<TInput, TOutput>;
 }): {
   form: TOutput;
-  field: GetFieldFn<TInput>;
+  field: GetFormFieldFn<TInput>;
   FormProvider: React.FC<{ children: React.ReactNode[] }>;
 };
 ```

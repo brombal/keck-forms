@@ -1,9 +1,9 @@
 import { atomic, derive, focus, observe, peek, unwrap } from 'keck';
 import { cloneDeep } from 'lodash-es';
-import { KeckField } from './KeckField';
+import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckField';
 import { KeckFieldArray } from './KeckFieldArray';
 import { KeckFieldObject } from './KeckFieldObject';
-import type { FormValidatorFn, KeckFieldForPath, ObjectOrUnknown, StringPath } from './types';
+import type { ObjectOrUnknown, StringPath } from './types';
 import { get } from './util/get';
 
 export interface KeckFormState<
@@ -18,51 +18,114 @@ export interface KeckFormState<
   validator: FormValidatorFn<TFormInput, TFormOutput>;
 }
 
-export abstract class KeckFormBase<
+export type FormValidatorFn<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
+> = (
+  input: TFormInput,
+  setError: (
+    field: StringPath<TFormInput>,
+    error: string | null | undefined | false,
+    action?: 'push' | 'unshift' | 'replace',
+  ) => void,
+) => TFormOutput | null;
+
+/**
+ * The public interface for the KeckForm class constructor parameters.
+ */
+export interface KeckFormOptions<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown,
 > {
-  protected state: KeckFormState<TFormInput, TFormOutput>;
+  initial: TFormInput;
+  validate: FormValidatorFn<TFormInput, TFormOutput>;
+}
 
-  constructor(state: KeckFormState<TFormInput, TFormOutput>, callback?: () => void) {
-    this.state = observe(state, callback);
+/**
+ * The internal interface for the KeckForm class constructor parameters.
+ */
+export type KeckFormOptionsInternal<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown,
+> = KeckFormOptions<TFormInput, TFormOutput> & {
+  state: KeckFormState<TFormInput, TFormOutput>;
+};
+
+export const state = Symbol('state');
+
+/**
+ * The base class for a Keck Form, which is created by providing a state object. The state object should be a configured Keck observer.
+ *
+ * Note that a KeckForm is just a wrapper around an existing state object. Multiple KeckForm objects can exist that wrap
+ * different Keck observers of the same underlying state object.
+ */
+export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
+  private [state]: KeckFormState<TFormInput, TFormOutput>;
+
+  /**
+   * Creates a KeckForm by providing an initial state and a validation function.
+   * @param options The initial state and validation function.
+   */
+  constructor(options: KeckFormOptions<TFormInput, TFormOutput>) {
+    const _state = (options as unknown as KeckFormOptionsInternal<TFormInput, TFormOutput>).state;
+    if (_state) {
+      this[state] = _state;
+    } else {
+      this[state] = observe({
+        initial: options.initial,
+        values: cloneDeep(options.initial),
+        errors: {},
+        touched: null,
+        output: null!,
+        validator: options.validate,
+      });
+      this.validate();
+    }
   }
 
   get initial() {
-    return this.state.initial;
+    return this[state].initial;
   }
 
   set initial(value: TFormInput) {
-    this.state.initial = value;
+    this[state].initial = value;
   }
 
   get output() {
-    return this.state.output;
+    return this[state].output;
   }
 
   validate(): TFormOutput {
     return atomic(() => {
-      this.state.errors = {};
-      this.state.output = this.state.validator(
-        cloneDeep(unwrap(this.state.values)),
+      this[state].errors = {};
+      this[state].output = this[state].validator(
+        cloneDeep(unwrap(this[state].values)),
         (field, error, action = 'push') => {
           if (!error) {
-            delete this.state.errors[field];
+            delete this[state].errors[field];
             return;
           }
-          this.state.errors[field] ||= [];
-          if (action === 'push') this.state.errors[field].push(error);
-          else if (action === 'unshift') this.state.errors[field].unshift(error);
-          else this.state.errors[field] = [error];
+          this[state].errors[field] ||= [];
+          if (action === 'push') this[state].errors[field].push(error);
+          else if (action === 'unshift') this[state].errors[field].unshift(error);
+          else this[state].errors[field] = [error];
         },
       );
-      return unwrap(this.state.output);
+      return unwrap(this[state].output);
     });
   }
 
   get isValid() {
-    return derive(() => Object.keys(this.state.errors).length === 0);
+    return derive(() => Object.keys(this[state].errors).length === 0);
   }
+
+  field<TReturn>(
+    _path: unknown extends TFormInput ? string : never,
+  ): unknown extends TFormInput ? TypedKeckField<TReturn> : never;
+
+  field<TStringPath extends StringPath<TFormInput>>(
+    _path: unknown extends TFormInput ? never : TStringPath,
+  ): unknown extends TFormInput ? never : KeckFieldForPath<TFormInput, TStringPath>;
 
   /**
    * Returns a KeckField object for the given path. This can be used to access the field value,
@@ -73,50 +136,22 @@ export abstract class KeckFormBase<
    *
    * @param path The path to access.
    */
-  field<TStringPath extends StringPath<TFormInput>>(
-    path: TStringPath,
-  ): KeckFieldForPath<TFormInput, TStringPath> {
+  field(path: string): any {
     return peek(() => {
-      const value = get(this.state.values, path);
+      const value = get(this[state].values, path);
       // TFormInput could be 'unknown', which KeckFieldArray and KeckFieldObject won't accept.
       // But we know the type, and the field() method return type is explicit, so we can cast values as any to ignore TS errors.
       if (Array.isArray(value))
-        return new KeckFieldArray(this as any, this.state as any, path as any) as KeckFieldForPath<
-          TFormInput,
-          TStringPath
-        >;
+        return new KeckFieldArray(this as any, this[state] as any, path as any);
       if (typeof value === 'object')
-        return new KeckFieldObject(this as any, this.state as any, path as any) as KeckFieldForPath<
-          TFormInput,
-          TStringPath
-        >;
-      return new KeckField(this, this.state, path) as KeckFieldForPath<TFormInput, TStringPath>;
+        return new KeckFieldObject(this as any, this[state] as any, path as any);
+      return new KeckField(this, this[state], path as any);
     });
   }
 
   focus(): this {
-    focus(this.state);
+    focus(this[state]);
     return this;
-  }
-}
-
-export class KeckForm<
-  TFormInput extends ObjectOrUnknown,
-  TFormOutput extends ObjectOrUnknown,
-> extends KeckFormBase<TFormInput, TFormOutput> {
-  constructor(options: {
-    initial: TFormInput;
-    validate: FormValidatorFn<TFormInput, TFormOutput>;
-  }) {
-    super({
-      initial: options.initial,
-      values: cloneDeep(options.initial),
-      errors: {},
-      touched: null,
-      output: null!,
-      validator: options.validate,
-    });
-    this.state.output = this.validate();
   }
 
   /**
@@ -142,19 +177,13 @@ export class KeckForm<
    * ```
    */
   observe(callback: () => void) {
-    return new KeckFormObserver(this, this.state, callback);
+    return new KeckForm({ state: observe(this[state], callback) } as KeckFormOptionsInternal<
+      TFormInput,
+      TFormOutput
+    >);
   }
-}
 
-export class KeckFormObserver<
-  TFormInput extends ObjectOrUnknown,
-  TFormOutput extends ObjectOrUnknown,
-> extends KeckFormBase<TFormInput, TFormOutput> {
-  constructor(
-    private ownerForm: KeckForm<TFormInput, TFormOutput>,
-    state: KeckFormState<TFormInput, TFormOutput>,
-    callback: () => void,
-  ) {
-    super(state, callback);
+  get state() {
+    return this[state];
   }
 }
