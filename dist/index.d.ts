@@ -53,6 +53,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     get output(): TFormOutput | null;
     validate(): TFormOutput;
     get isValid(): boolean;
+    reset(): void;
     field<TReturn>(_path: unknown extends TFormInput ? string : never): unknown extends TFormInput ? TypedKeckField<TReturn> : never;
     field<TStringPath extends StringPath<TFormInput>>(_path: unknown extends TFormInput ? never : TStringPath): unknown extends TFormInput ? never : KeckFieldForPath<TFormInput, TStringPath>;
     focus(): this;
@@ -119,6 +120,6 @@ declare function useForm<TFormInput extends object, TFormOutput extends object>(
 
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(): KeckForm<TFormInput, TFormOutput>;
 
-declare const zodValidator: <TInput extends object, TOutput extends object>(schema: z.Schema<TOutput>) => FormValidatorFn<TInput, TOutput>;
+declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => FormValidatorFn<z.input<TSchema>, z.output<TSchema>>;
 
 export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, type KeckFormOptions, useForm, useFormContext, zodValidator };

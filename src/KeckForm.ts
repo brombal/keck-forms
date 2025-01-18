@@ -119,6 +119,14 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
     return derive(() => Object.keys(this[state].errors).length === 0);
   }
 
+  reset() {
+    atomic(() => {
+      this[state].values = cloneDeep(this[state].initial);
+      this[state].touched = null;
+      this.validate();
+    });
+  }
+
   field<TReturn>(
     _path: unknown extends TFormInput ? string : never,
   ): unknown extends TFormInput ? TypedKeckField<TReturn> : never;

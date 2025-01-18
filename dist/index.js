@@ -167,6 +167,13 @@ class KeckForm {
     get isValid() {
         return derive(() => Object.keys(this[state].errors).length === 0);
     }
+    reset() {
+        atomic(() => {
+            this[state].values = cloneDeep(this[state].initial);
+            this[state].touched = null;
+            this.validate();
+        });
+    }
     /**
      * Returns a KeckField object for the given path. This can be used to access the field value,
      * errors, and other state.
