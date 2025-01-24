@@ -241,7 +241,13 @@ function useForm(options) {
         formRef.current = {
             form,
             FormProvider: ({ children }) => {
-                return jsx(typedContext.Provider, { value: form, children: children });
+                return (jsx(typedContext.Provider, { value: form, children: options.onSubmit ? (jsx("form", { onSubmit: (e) => {
+                            e.preventDefault();
+                            const output = form.validate();
+                            if (!output)
+                                return;
+                            options.onSubmit(output);
+                        }, children: children })) : (children) }));
             },
         };
     }

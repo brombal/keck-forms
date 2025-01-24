@@ -116,6 +116,7 @@ type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends Objec
 declare function useForm<TFormInput extends object, TFormOutput extends object>(options: {
     initial: TFormInput;
     validate: FormValidatorFn<TFormInput, TFormOutput>;
+    onSubmit?: (output: TFormOutput) => void;
 }): UseFormReturn<TFormInput, TFormOutput>;
 
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(): KeckForm<TFormInput, TFormOutput>;
