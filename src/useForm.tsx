@@ -1,7 +1,8 @@
+import { useObserver } from 'keck/react';
 import type React from 'react';
 import { useRef } from 'react';
 import { createContext } from 'react';
-import { type FormValidatorFn, KeckForm } from './KeckForm';
+import { type FormValidatorFn, KeckForm, state } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
 
 export type UseFormReturn<
@@ -51,6 +52,8 @@ export function useForm<TFormInput extends object, TFormOutput extends object>(o
       },
     };
   }
+
+  formRef.current.form[state] = useObserver(formRef.current.form[state]);
 
   return formRef.current;
 }

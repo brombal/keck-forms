@@ -1,3 +1,4 @@
+import { derive, shallowCompare } from 'keck';
 import { KeckFieldBase, type KeckFieldForPath } from './KeckField';
 import type { StringPath } from './types';
 
@@ -20,6 +21,14 @@ export class KeckFieldArray<
     ) => TReturn,
   ): TReturn[] {
     return [];
+  }
+
+  get errors(): string[] {
+    return derive(() => {
+      return Object.entries(this.formState.errors)
+        .filter(([key]) => key.startsWith(this.path))
+        .flatMap(([, value]) => value);
+    }, shallowCompare);
   }
 
   // push(value: ValueAtPath<TFormInput, `${TStringPath}.${number}`>): void {

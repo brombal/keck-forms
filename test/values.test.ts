@@ -1,3 +1,5 @@
+import { KeckField } from 'keck-forms/KeckField';
+import { KeckFieldObject } from 'keck-forms/KeckFieldObject';
 import { KeckForm } from 'keck-forms/KeckForm';
 
 describe('values', () => {
@@ -80,5 +82,34 @@ describe('values', () => {
     form.field('friends').value = { '0': { name: 'Alice3', age: 20 } } as any;
     expect(form.field('friends.0.name').value).toBe('Alice3');
     expect(form.field('friends.0.age').value).toBe(20);
+  });
+
+  test('object values should get/set correctly', () => {
+    const values = {
+      name: 'John',
+      age: 20,
+      friends: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 40 },
+      ],
+    };
+
+    const form = new KeckForm({
+      initial: values,
+      validate: () => ({}),
+    });
+
+    expect(form.field('friends.0')).toBeInstanceOf(KeckFieldObject);
+    expect(form.field('friends.0').field('name')).toBeInstanceOf(KeckField);
+    expect(form.field('friends.0').field('name').value).toBe('Alice');
+    expect(form.field('friends.0').field('age').value).toBe(30);
+
+    form.field('friends.0').field('name').value.toUpperCase();
+    form.field('friends.0').field('age').value.toFixed();
+
+    // @ts-expect-error wrong type
+    void form.field('friends.0').field('name').value.toFixed;
+    // @ts-expect-error wrong type
+    void form.field('friends.0').field('age').value.toUpperCase;
   });
 });

@@ -98,11 +98,25 @@ class KeckFieldArray extends KeckFieldBase {
     map(_callback) {
         return [];
     }
+    get errors() {
+        return derive(() => {
+            return Object.entries(this.formState.errors)
+                .filter(([key]) => key.startsWith(this.path))
+                .flatMap(([, value]) => value);
+        }, shallowCompare);
+    }
 }
 
 class KeckFieldObject extends KeckFieldBase {
     field(_path) {
-        return null;
+        return this.form.field(`${this.path}.${_path}`);
+    }
+    get errors() {
+        return derive(() => {
+            return Object.entries(this.formState.errors)
+                .filter(([key]) => key.startsWith(this.path))
+                .flatMap(([, value]) => value);
+        }, shallowCompare);
     }
 }
 
@@ -251,6 +265,7 @@ function useForm(options) {
             },
         };
     }
+    formRef.current.form[state] = useObserver(formRef.current.form[state]);
     return formRef.current;
 }
 

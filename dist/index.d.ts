@@ -12,10 +12,12 @@ declare class KeckFieldArray<TFormInput extends object, TStringPath extends Stri
      * Maps each field in the array to a new value by invoking the callback function.
      */
     map<TReturn>(_callback: (field: KeckFieldForPath<TFormInput, `${TStringPath}.${number}` extends StringPath<TFormInput> ? `${TStringPath}.${number}` : never>, index: number) => TReturn): TReturn[];
+    get errors(): string[];
 }
 
 declare class KeckFieldObject<TFormInput extends object, TStringPath extends StringPath<TFormInput>> extends KeckFieldBase<TFormInput, TStringPath> {
     field<TPath extends string>(_path: TPath): `${TStringPath}.${TPath}` extends StringPath<TFormInput> ? KeckFieldForPath<TFormInput, `${TStringPath}.${TPath}` extends StringPath<TFormInput> ? `${TStringPath}.${TPath}` : never> : never;
+    get errors(): string[];
 }
 
 interface KeckFormState<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {

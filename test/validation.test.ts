@@ -74,4 +74,38 @@ describe('validation', () => {
     form.field('age').value = 28;
     expect(mockFn).toHaveBeenCalledTimes(1);
   });
+
+  test('Errors are returned for all sub fields', () => {
+    const initial = {
+      name: 'John',
+      age: 20,
+      friends: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 15 },
+      ],
+    };
+
+    const form = new KeckForm({
+      initial,
+      validate: (input, setError) => {
+        for (const i in input.friends) {
+          if (input.friends[i].age < 18) {
+            setError(`friends.${+i}.age`, 'Friend must be 18 or older');
+          }
+        }
+        return input;
+      },
+    });
+
+    expect(form.isValid).toBe(false);
+    expect(form.field('friends.1.age').errors).toEqual(['Friend must be 18 or older']);
+    expect(form.field('friends.1').errors).toEqual(['Friend must be 18 or older']);
+    expect(form.field('friends').errors).toEqual(['Friend must be 18 or older']);
+
+    form.field('friends.0.age').value = 15;
+    expect(form.field('friends').errors).toEqual([
+      'Friend must be 18 or older',
+      'Friend must be 18 or older',
+    ]);
+  });
 });
