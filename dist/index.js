@@ -1,8 +1,8 @@
 import { atomic, derive, unwrap, shallowCompare, observe, peek, focus } from 'keck';
 import { get as get$1, set, isEqual, isEmpty, cloneDeep } from 'lodash-es';
 import { jsx } from 'react/jsx-runtime';
-import { createContext, useRef, useContext } from 'react';
 import { useObserver } from 'keck/react';
+import { createContext, useRef, useContext } from 'react';
 
 function get(obj, path) {
     return !path ? obj : get$1(obj, path);
@@ -258,8 +258,6 @@ function useForm(options) {
                 return (jsx(typedContext.Provider, { value: form, children: options.onSubmit ? (jsx("form", { onSubmit: (e) => {
                             e.preventDefault();
                             const output = form.validate();
-                            if (!output)
-                                return;
                             options.onSubmit(output);
                         }, children: children })) : (children) }));
             },

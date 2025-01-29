@@ -18,7 +18,7 @@ export const keckFormContext = createContext<KeckForm<unknown, unknown> | null>(
 export function useForm<TFormInput extends object, TFormOutput extends object>(options: {
   initial: TFormInput;
   validate: FormValidatorFn<TFormInput, TFormOutput>;
-  onSubmit?: (output: TFormOutput) => void;
+  onSubmit?: (output: TFormOutput | null) => void;
 }): UseFormReturn<TFormInput, TFormOutput> {
   const formRef = useRef<UseFormReturn<TFormInput, TFormOutput>>(null);
 
@@ -38,7 +38,6 @@ export function useForm<TFormInput extends object, TFormOutput extends object>(o
                 onSubmit={(e) => {
                   e.preventDefault();
                   const output = form.validate();
-                  if (!output) return;
                   options.onSubmit!(output);
                 }}
               >
