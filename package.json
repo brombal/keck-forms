@@ -53,7 +53,7 @@
     "zod": "^3"
   },
   "dependencies": {
-    "keck": "github:brombal/keck#v1",
+    "keck": "github:brombal/keck#v1-rc1",
     "lodash-es": "^4.17.21"
   }
 }
