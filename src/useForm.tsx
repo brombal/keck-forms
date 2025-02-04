@@ -1,6 +1,6 @@
 import { useObserver } from 'keck/react';
 import type React from 'react';
-import { useRef } from 'react';
+import { type HTMLProps, useRef } from 'react';
 import { createContext } from 'react';
 import { type FormValidatorFn, KeckForm, state } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
@@ -10,7 +10,9 @@ export type UseFormReturn<
   TFormOutput extends ObjectOrUnknown,
 > = {
   form: KeckForm<TFormInput, TFormOutput>;
-  FormProvider: React.FC<{ children: React.ReactNode | React.ReactNode[] }>;
+  FormProvider: React.FC<
+    HTMLProps<HTMLFormElement> & { children: React.ReactNode | React.ReactNode[] }
+  >;
 };
 
 export const keckFormContext = createContext<KeckForm<unknown, unknown> | null>(null);
@@ -30,11 +32,12 @@ export function useForm<TFormInput extends object, TFormOutput extends object>(o
     const typedContext = keckFormContext as React.Context<KeckForm<TFormInput, TFormOutput> | null>;
     formRef.current = {
       form,
-      FormProvider: ({ children }) => {
+      FormProvider: ({ children, ...props }) => {
         return (
           <typedContext.Provider value={form}>
             {options.onSubmit ? (
               <form
+                {...props}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const output = form.validate();

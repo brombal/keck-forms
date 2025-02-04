@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { HTMLProps } from 'react';
 import { z } from 'zod';
 
 type StringPath<T> = unknown extends T ? string : T extends Array<infer _> ? `${number}` | `${number}.${StringPath<T[number]>}` : T extends object ? {
@@ -111,7 +111,7 @@ declare class KeckField<TFormInput extends ObjectOrUnknown, TStringPath extends 
 
 type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = {
     form: KeckForm<TFormInput, TFormOutput>;
-    FormProvider: React.FC<{
+    FormProvider: React.FC<HTMLProps<HTMLFormElement> & {
         children: React.ReactNode | React.ReactNode[];
     }>;
 };

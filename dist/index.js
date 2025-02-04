@@ -254,8 +254,8 @@ function useForm(options) {
         const typedContext = keckFormContext;
         formRef.current = {
             form,
-            FormProvider: ({ children }) => {
-                return (jsx(typedContext.Provider, { value: form, children: options.onSubmit ? (jsx("form", { onSubmit: (e) => {
+            FormProvider: ({ children, ...props }) => {
+                return (jsx(typedContext.Provider, { value: form, children: options.onSubmit ? (jsx("form", { ...props, onSubmit: (e) => {
                             e.preventDefault();
                             const output = form.validate();
                             options.onSubmit(output);
