@@ -9,7 +9,7 @@ describe('values', () => {
       validate: () => ({}),
     });
 
-    expect(form.field('').value).toEqual({ name: 'John', age: 20 });
+    expect(form.value).toEqual({ name: 'John', age: 20 });
     expect(form.field('name').value).toBe('John');
     expect(form.field('age').value).toBe(20);
 

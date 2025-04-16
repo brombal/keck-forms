@@ -11,8 +11,8 @@ describe('initial values', () => {
 
     expect(form.field('name').value).toBe('John');
     expect(form.field('age').value).toBe(20);
-    expect(form.field('').value).toEqual(initial);
-    expect(form.field('').value).not.toBe(initial);
+    expect(form.value).toEqual(initial);
+    expect(form.value).not.toBe(initial);
   });
 
   test('Initial values should be readable', () => {

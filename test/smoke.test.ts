@@ -30,7 +30,7 @@ describe('smoke', () => {
 
       const unknownForm: KeckForm<unknown, unknown> = new KeckForm({
         initial: {} as unknown,
-        validate: () => ({}),
+        validate: () => ({}) as unknown,
       });
       void unknownForm.field<string>('name').value.toUpperCase;
       void unknownForm.field<number>('age').value.toFixed;

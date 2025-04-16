@@ -16,6 +16,8 @@
   - Tests that form output works as expected.
 - **reset**
   - Tests that form reset works as expected.
+- - **submit**
+  - Tests that form submit features work as expected.
 - **form-meta**
   - Tests that form meta values works as expected.
 - **field-meta**

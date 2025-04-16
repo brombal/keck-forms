@@ -17,21 +17,21 @@ describe('dirty', () => {
     expect(form.field('name').dirty).toBe(false);
     expect(form.field('age').dirty).toBe(false);
     expect(form.field('friends').dirty).toBe(false);
-    expect(form.field('').dirty).toBe(false);
+    expect(form.dirty).toBe(false);
 
     form.field('name').value = 'Jane';
 
     expect(form.field('name').dirty).toBe(true);
     expect(form.field('age').dirty).toBe(false);
     expect(form.field('friends').dirty).toBe(false);
-    expect(form.field('').dirty).toBe(true);
+    expect(form.dirty).toBe(true);
 
     form.field('friends.0.name').value = 'Bob';
 
     expect(form.field('friends.0.name').dirty).toBe(true);
     expect(form.field('friends.0').dirty).toBe(true);
     expect(form.field('friends').dirty).toBe(true);
-    expect(form.field('').dirty).toBe(true);
+    expect(form.dirty).toBe(true);
   });
 
   test('Observer callback is only triggered when dirty state changes', () => {
@@ -48,9 +48,11 @@ describe('dirty', () => {
 
     const mockFn = jest.fn();
     const formObserver = form.observe(mockFn).focus();
+    expect(mockFn).toHaveBeenCalledTimes(0);
 
     // Observe dirty value
     void formObserver.field('name').dirty;
+    expect(mockFn).toHaveBeenCalledTimes(0);
 
     // Changing value should trigger callback
     form.field('name').value = 'Jane';

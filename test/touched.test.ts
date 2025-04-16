@@ -17,14 +17,14 @@ describe('touched', () => {
     expect(form.field('name').touched).toBe(false);
     expect(form.field('age').touched).toBe(false);
     expect(form.field('friends').touched).toBe(false);
-    expect(form.field('').touched).toBe(false);
+    expect(form.touched).toBe(false);
 
     form.field('name').touched = true;
 
     expect(form.field('name').touched).toBe(true);
     expect(form.field('age').touched).toBe(false);
     expect(form.field('friends').touched).toBe(false);
-    expect(form.field('').touched).toBe(true);
+    expect(form.touched).toBe(true);
 
     form.field('friends.0.name').touched = true;
 
@@ -33,7 +33,7 @@ describe('touched', () => {
     expect(form.field('friends.0').touched).toBe(true);
     expect(form.field('friends.1').touched).toBe(false);
     expect(form.field('friends').touched).toBe(true);
-    expect(form.field('').touched).toBe(true);
+    expect(form.touched).toBe(true);
   });
 
   test('Touching a nested form field should work', () => {
@@ -55,7 +55,7 @@ describe('touched', () => {
     expect(form.field('friends.0').touched).toBe(true);
     expect(form.field('friends.1').touched).toBe(false);
     expect(form.field('friends').touched).toBe(true);
-    expect(form.field('').touched).toBe(true);
+    expect(form.touched).toBe(true);
   });
 
   test('Touching a form field collection should work', () => {
@@ -79,7 +79,49 @@ describe('touched', () => {
     expect(form.field('friends').touched).toBe(true);
     expect(form.field('name').touched).toBe(false);
     expect(form.field('age').touched).toBe(false);
-    expect(form.field('').touched).toBe(true);
+    expect(form.touched).toBe(true);
+  });
+
+  test('Un-touching a nested form field should work', () => {
+    const initial = {
+      name: 'John',
+      age: 20,
+      friends: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 20 },
+      ],
+    };
+
+    const form = new KeckForm({
+      initial,
+      validate: () => ({}),
+    });
+
+    form.field('friends.0.name').touched = true;
+    form.field('friends.1.name').touched = true;
+
+    form.field('friends.0.name').touched = false;
+
+    expect(form.field('friends.0.name').touched).toBe(false);
+    expect(form.field('friends.0.age').touched).toBe(false);
+    expect(form.field('friends.0').touched).toBe(false);
+    expect(form.field('friends.1.name').touched).toBe(true);
+    expect(form.field('friends.1.age').touched).toBe(false);
+    expect(form.field('friends.1').touched).toBe(true);
+    expect(form.field('friends').touched).toBe(true);
+    expect(form.touched).toBe(true);
+
+    form.field('friends.1.name').touched = false;
+
+    expect(form.field('friends.0.name').touched).toBe(false);
+    expect(form.field('friends.0.age').touched).toBe(false);
+    expect(form.field('friends.0').touched).toBe(false);
+    expect(form.field('friends.1.name').touched).toBe(false);
+    expect(form.field('friends.1.age').touched).toBe(false);
+    expect(form.field('friends.1').touched).toBe(false);
+    expect(form.field('friends.1').touched).toBe(false);
+    expect(form.field('friends').touched).toBe(false);
+    expect(form.touched).toBe(false);
   });
 
   test('Touching entire form should work', () => {
@@ -94,7 +136,7 @@ describe('touched', () => {
       validate: () => ({}),
     });
 
-    form.field('').touched = true;
+    form.touched = true;
 
     expect(form.field('friends.0.name').touched).toBe(true);
     expect(form.field('friends.0.age').touched).toBe(true);
@@ -103,7 +145,38 @@ describe('touched', () => {
     expect(form.field('friends').touched).toBe(true);
     expect(form.field('name').touched).toBe(true);
     expect(form.field('age').touched).toBe(true);
-    expect(form.field('').touched).toBe(true);
+    expect(form.touched).toBe(true);
+  });
+
+  test('Un-touching entire form should work', () => {
+    const initial = {
+      name: 'John',
+      age: 20,
+      friends: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 20 },
+      ],
+    };
+
+    const form = new KeckForm({
+      initial,
+      validate: () => ({}),
+    });
+
+    form.field('friends.0.name').touched = true;
+    form.field('friends.1.name').touched = true;
+
+    form.touched = false;
+
+    expect(form.field('friends.0.name').touched).toBe(false);
+    expect(form.field('friends.0.age').touched).toBe(false);
+    expect(form.field('friends.0').touched).toBe(false);
+    expect(form.field('friends.1.name').touched).toBe(false);
+    expect(form.field('friends.1.age').touched).toBe(false);
+    expect(form.field('friends.1').touched).toBe(false);
+    expect(form.field('friends.1').touched).toBe(false);
+    expect(form.field('friends').touched).toBe(false);
+    expect(form.touched).toBe(false);
   });
 
   test('Observer callback is only triggered when touched state changes', () => {

@@ -1,5 +1,6 @@
-import { atomic, derive, focus, observe, peek, unwrap } from 'keck';
+import { atomic, focus, observe, peek, transformInPlace, unwrap } from 'keck';
 import { cloneDeep } from 'lodash-es';
+import type { FormEvent } from 'react';
 import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckField';
 import { KeckFieldArray } from './KeckFieldArray';
 import { KeckFieldObject } from './KeckFieldObject';
@@ -15,7 +16,9 @@ export interface KeckFormState<
   output: TFormOutput | null;
   touched: any;
   errors: Record<string, string[]>;
-  validator: FormValidatorFn<TFormInput, TFormOutput>;
+  isSubmitting: boolean;
+  submitCount: number;
+  submitAttemptCount: number;
 }
 
 export type FormValidatorFn<
@@ -30,6 +33,11 @@ export type FormValidatorFn<
   ) => void,
 ) => TFormOutput | null;
 
+export type OnSubmitFn<TFormOutput extends ObjectOrUnknown> = (
+  output: TFormOutput,
+) => Promise<void> | void;
+export type OnSubmitAttemptFn = () => Promise<void> | void;
+
 /**
  * The public interface for the KeckForm class constructor parameters.
  */
@@ -39,6 +47,8 @@ export interface KeckFormOptions<
 > {
   initial: TFormInput;
   validate: FormValidatorFn<TFormInput, TFormOutput>;
+  onSubmit?: OnSubmitFn<TFormOutput>;
+  onSubmitAttempt?: OnSubmitAttemptFn;
 }
 
 /**
@@ -47,11 +57,13 @@ export interface KeckFormOptions<
 export type KeckFormOptionsInternal<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown,
-> = KeckFormOptions<TFormInput, TFormOutput> & {
+> = {
+  form: KeckForm<TFormInput, TFormOutput>;
   state: KeckFormState<TFormInput, TFormOutput>;
 };
 
-export const state = Symbol('state');
+export const stateAccessor = Symbol('state');
+export const reassignOptions = Symbol('reassignOptions');
 
 /**
  * The base class for a Keck Form, which is created by providing a state object. The state object should be a configured Keck observer.
@@ -60,69 +72,130 @@ export const state = Symbol('state');
  * different Keck observers of the same underlying state object.
  */
 export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
-  private [state]: KeckFormState<TFormInput, TFormOutput>;
+  private [stateAccessor]: KeckFormState<TFormInput, TFormOutput>;
+
+  private validator: FormValidatorFn<TFormInput, TFormOutput>;
+  private onSubmit: OnSubmitFn<TFormOutput> | undefined;
+  private onSubmitAttempt: OnSubmitAttemptFn | undefined;
 
   /**
    * Creates a KeckForm by providing an initial state and a validation function.
    * @param options The initial state and validation function.
    */
-  constructor(options: KeckFormOptions<TFormInput, TFormOutput>) {
-    const _state = (options as unknown as KeckFormOptionsInternal<TFormInput, TFormOutput>).state;
-    if (_state) {
-      this[state] = _state;
-    } else {
-      this[state] = observe({
+  constructor(options: KeckFormOptionsInternal<TFormInput, TFormOutput>);
+  constructor(options: KeckFormOptions<TFormInput, TFormOutput>);
+  constructor(
+    options:
+      | KeckFormOptions<TFormInput, TFormOutput>
+      | KeckFormOptionsInternal<TFormInput, TFormOutput>,
+  ) {
+    if ('form' in options) {
+      this[stateAccessor] = options.state;
+      this.validator = options.form.validator;
+      this.onSubmit = options.form.onSubmit;
+      this.onSubmitAttempt = options.form.onSubmitAttempt;
+    } else if ('initial' in options) {
+      this.validator = options.validate;
+      this.onSubmit = options.onSubmit;
+      this.onSubmitAttempt = options.onSubmitAttempt;
+      this[stateAccessor] = observe({
         initial: options.initial,
         values: cloneDeep(options.initial),
         errors: {},
         touched: null,
         output: null!,
-        validator: options.validate,
+        isSubmitting: false,
+        submitCount: 0,
+        submitAttemptCount: 0,
       });
       this.validate();
+    } else {
+      throw new Error('Invalid options provided to KeckForm constructor');
     }
   }
 
+  [reassignOptions](options: KeckFormOptions<TFormInput, TFormOutput>) {
+    this.validator = options.validate;
+    this.onSubmit = options.onSubmit;
+    this.onSubmitAttempt = options.onSubmitAttempt;
+  }
+
   get initial() {
-    return this[state].initial;
+    return this[stateAccessor].initial;
   }
 
   set initial(value: TFormInput) {
-    this[state].initial = value;
+    this[stateAccessor].initial = value;
   }
 
   get output() {
-    return this[state].output;
+    return this[stateAccessor].output;
+  }
+
+  get value(): TFormInput {
+    return this.field('' as any).value as TFormInput;
   }
 
   validate(): TFormOutput {
     return atomic(() => {
-      this[state].errors = {};
-      this[state].output = this[state].validator(
-        cloneDeep(unwrap(this[state].values)),
+      const errors = {} as Record<string, string[]>;
+      this[stateAccessor].output = this.validator(
+        cloneDeep(unwrap(this[stateAccessor].values)),
         (field, error, action = 'push') => {
           if (!error) {
-            delete this[state].errors[field];
+            delete errors[field];
             return;
           }
-          this[state].errors[field] ||= [];
-          if (action === 'push') this[state].errors[field].push(error);
-          else if (action === 'unshift') this[state].errors[field].unshift(error);
-          else this[state].errors[field] = [error];
+          errors[field] ||= [];
+          if (action === 'push') errors[field].push(error);
+          else if (action === 'unshift') errors[field].unshift(error);
+          else errors[field] = [error];
         },
       );
-      return unwrap(this[state].output);
+      this[stateAccessor].errors = transformInPlace(this[stateAccessor].errors, errors);
+      return unwrap(this[stateAccessor].output);
     });
   }
 
   get isValid() {
-    return derive(() => Object.keys(this[state].errors).length === 0);
+    return this.field('' as any).isValid;
   }
 
-  reset() {
+  get dirty() {
+    return this.field('' as any).dirty;
+  }
+
+  get touched() {
+    return this.field('' as any).touched;
+  }
+
+  set touched(touched: boolean) {
+    this.field('' as any).touched = touched;
+  }
+
+  get errors() {
+    return this.field('' as any).errors;
+  }
+
+  /**
+   * Resets the form state. You can optionally reset specific parts of the form state:
+   * - **values** - Reset the values to the initial values.
+   * - **touched** - Reset the touched state to null.
+   * - **submit** - Reset the submit count and submit attempt count to 0.
+   */
+  reset(resetOptions?: {
+    values?: boolean;
+    touched?: boolean;
+    submit?: boolean;
+  }) {
     atomic(() => {
-      this[state].values = cloneDeep(this[state].initial);
-      this[state].touched = null;
+      if (!resetOptions || resetOptions.values === true)
+        this[stateAccessor].values = cloneDeep(unwrap(this[stateAccessor].initial));
+      if (!resetOptions || resetOptions.touched === true) this[stateAccessor].touched = null;
+      if (!resetOptions || resetOptions.submit === true) {
+        this[stateAccessor].submitCount = 0;
+        this[stateAccessor].submitAttemptCount = 0;
+      }
       this.validate();
     });
   }
@@ -146,24 +219,24 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
    */
   field(path: string): any {
     return peek(() => {
-      const value = get(this[state].values, path);
+      const value = get(this[stateAccessor].values, path);
       // TFormInput could be 'unknown', which KeckFieldArray and KeckFieldObject won't accept.
       // But we know the type, and the field() method return type is explicit, so we can cast values as any to ignore TS errors.
       if (Array.isArray(value))
-        return new KeckFieldArray(this as any, this[state] as any, path as any);
+        return new KeckFieldArray(this as any, this[stateAccessor] as any, path as any);
       if (typeof value === 'object')
-        return new KeckFieldObject(this as any, this[state] as any, path as any);
-      return new KeckField(this, this[state], path as any);
+        return new KeckFieldObject(this as any, this[stateAccessor] as any, path as any);
+      return new KeckField(this as any, this[stateAccessor], path as any);
     });
   }
 
   focus(): this {
-    focus(this[state]);
+    focus(this[stateAccessor]);
     return this;
   }
 
   /**
-   * Adds a callback that will be called when the form state changes. This returns a FormObserver
+   * Adds a callback that will be called when the form state changes. This returns a new KeckForm
    * object that can be used to observe specific fields in the form. E.g.:
    *
    * ```ts
@@ -185,13 +258,46 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
    * ```
    */
   observe(callback: () => void) {
-    return new KeckForm({ state: observe(this[state], callback) } as KeckFormOptionsInternal<
-      TFormInput,
-      TFormOutput
-    >);
+    return new KeckForm({
+      form: this,
+      state: observe(this[stateAccessor], callback),
+    } as KeckFormOptionsInternal<TFormInput, TFormOutput>);
   }
 
-  get state() {
-    return this[state];
+  /**
+   * Call this function to submit the form.
+   *
+   * If the form is valid, the onSubmit function will be called and the submitCount field will be incremented.
+   *
+   * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
+   */
+  handleSubmit = async (e?: FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+
+    const output = this.validate();
+    try {
+      this[stateAccessor].isSubmitting = true;
+      this[stateAccessor].submitAttemptCount++;
+      if (this.isValid) {
+        this[stateAccessor].submitCount++;
+        await this.onSubmit?.(output);
+      } else {
+        await this.onSubmitAttempt?.();
+      }
+    } finally {
+      this[stateAccessor].isSubmitting = false;
+    }
+  };
+
+  get isSubmitting() {
+    return this[stateAccessor].isSubmitting;
+  }
+
+  get submitCount() {
+    return this[stateAccessor].submitCount;
+  }
+
+  get submitAttemptCount() {
+    return this[stateAccessor].submitAttemptCount;
   }
 }

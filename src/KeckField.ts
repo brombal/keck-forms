@@ -1,5 +1,5 @@
 import { atomic, derive, shallowCompare, unwrap } from 'keck';
-import { isEmpty, isEqual, set } from 'lodash-es';
+import { isEmpty, isEqual, set, unset } from 'lodash-es';
 import type { KeckFieldArray } from './KeckFieldArray';
 import type { KeckFieldObject } from './KeckFieldObject';
 import type { KeckForm, KeckFormState } from './KeckForm';
@@ -81,19 +81,29 @@ export abstract class KeckFieldBase<
           this.formState.touched ||= {};
           set(this.formState.touched, this.path, true);
         } else this.formState.touched = true;
-        return;
-      }
-
-      if (this.path) {
-        set(this.formState.touched, this.path, false);
+      } else if (this.path) {
         const path = this.path.split('.');
-        for (let i = path.length - 1; i >= 0; i--) {
+        unset(this.formState.touched, path);
+
+        while (path.length) {
           path.pop();
-          if (!isEmpty(get(this.formState.touched, path.join('.')))) return;
-          if (path.length) set(this.formState.touched, path.join('.'), undefined);
-          else this.formState.touched = undefined;
+          const pathValue = get(this.formState.touched, path);
+          if (
+            isEmpty(pathValue) ||
+            (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p)))
+          ) {
+            unset(this.formState.touched, path);
+          } else {
+            break;
+          }
         }
-      } else this.formState.touched = false;
+
+        if (isEmpty(this.formState.touched)) {
+          this.formState.touched = false;
+        }
+      } else {
+        this.formState.touched = false;
+      }
     });
   }
 
