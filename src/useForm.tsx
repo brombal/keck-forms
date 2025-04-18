@@ -32,7 +32,8 @@ export function useForm<TFormInput extends object, TFormOutput extends object>(o
   onSubmitAttempt?: OnSubmitAttemptFn;
 }): UseFormReturn<TFormInput, TFormOutput> {
   const context = useFormContext<TFormInput, TFormOutput>(true);
-  const contextFormReturn = context ? { form: context, FormProvider: Fragment } : null;
+  const contextFormReturn =
+    options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
 
   const formRef = useRef<UseFormReturn<TFormInput, TFormOutput>>(contextFormReturn);
 

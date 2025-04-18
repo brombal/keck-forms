@@ -346,7 +346,7 @@ function useFormContext(dontThrowOnMissingProvider = false) {
 const keckFormContext = createContext(null);
 function useForm(options) {
     const context = useFormContext(true);
-    const contextFormReturn = context ? { form: context, FormProvider: Fragment } : null;
+    const contextFormReturn = options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
     const formRef = useRef(contextFormReturn);
     if (!formRef.current) {
         const form = new KeckForm({
