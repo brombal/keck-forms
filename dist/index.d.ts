@@ -1,4 +1,4 @@
-import React, { FormEvent } from 'react';
+import React from 'react';
 import { z } from 'zod';
 
 type StringPath<T> = unknown extends T ? string : T extends Array<infer _> ? `${number}` | `${number}.${StringPath<T[number]>}` : T extends object ? {
@@ -73,7 +73,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     set initial(value: TFormInput);
     get output(): TFormOutput | null;
     get value(): TFormInput;
-    validate(): TFormOutput;
+    validate(): TFormOutput | null;
     get isValid(): boolean;
     get dirty(): boolean;
     get touched(): boolean;
@@ -123,7 +123,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
      *
      * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
      */
-    handleSubmit: (e?: FormEvent<HTMLFormElement>) => Promise<void>;
+    handleSubmit: (e?: any) => Promise<void>;
     get isSubmitting(): boolean;
     get submitCount(): number;
     get submitAttemptCount(): number;
@@ -149,6 +149,7 @@ declare abstract class KeckFieldBase<TFormInput extends ObjectOrUnknown, TString
     set touched(value: boolean);
     get errors(): string[];
     get isValid(): boolean;
+    reset(): void;
 }
 declare class KeckField<TFormInput extends ObjectOrUnknown, TStringPath extends StringPath<TFormInput>> extends KeckFieldBase<TFormInput, TStringPath> {
 }

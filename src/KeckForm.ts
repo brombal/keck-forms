@@ -1,6 +1,5 @@
 import { atomic, focus, observe, peek, transformInPlace, unwrap } from 'keck';
 import { cloneDeep } from 'lodash-es';
-import type { FormEvent } from 'react';
 import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckField';
 import { KeckFieldArray } from './KeckFieldArray';
 import { KeckFieldObject } from './KeckFieldObject';
@@ -136,7 +135,7 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
     return this.field('' as any).value as TFormInput;
   }
 
-  validate(): TFormOutput {
+  validate(): TFormOutput | null {
     return atomic(() => {
       const errors = {} as Record<string, string[]>;
       this[stateAccessor].output = this.validator(
@@ -271,14 +270,15 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
    *
    * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
    */
-  handleSubmit = async (e?: FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
+  handleSubmit = async (e?: any) => {
+    // Prevent default form submission if this is called from a form submit event
+    e?.preventDefault?.();
 
     const output = this.validate();
     try {
       this[stateAccessor].isSubmitting = true;
       this[stateAccessor].submitAttemptCount++;
-      if (this.isValid) {
+      if (output && this.isValid) {
         this[stateAccessor].submitCount++;
         await this.onSubmit?.(output);
       } else {

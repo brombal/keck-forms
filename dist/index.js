@@ -92,6 +92,13 @@ class KeckFieldBase {
     get isValid() {
         return derive(() => this.errors.length === 0);
     }
+    reset() {
+        atomic(() => {
+            set(this.formState.values, this.path, cloneDeep(get(this.formState.initial, this.path)));
+            this.touched = false;
+            this.form.validate();
+        });
+    }
 }
 class KeckField extends KeckFieldBase {
 }
@@ -297,12 +304,13 @@ class KeckForm {
      * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
      */
     handleSubmit = async (e) => {
-        e?.preventDefault();
+        // Prevent default form submission if this is called from a form submit event
+        e?.preventDefault?.();
         const output = this.validate();
         try {
             this[stateAccessor].isSubmitting = true;
             this[stateAccessor].submitAttemptCount++;
-            if (this.isValid) {
+            if (output && this.isValid) {
                 this[stateAccessor].submitCount++;
                 await this.onSubmit?.(output);
             }

@@ -1,5 +1,5 @@
 import { atomic, derive, shallowCompare, unwrap } from 'keck';
-import { isEmpty, isEqual, set, unset } from 'lodash-es';
+import { cloneDeep, isEmpty, isEqual, set, unset } from 'lodash-es';
 import type { KeckFieldArray } from './KeckFieldArray';
 import type { KeckFieldObject } from './KeckFieldObject';
 import type { KeckForm, KeckFormState } from './KeckForm';
@@ -39,7 +39,7 @@ export abstract class KeckFieldBase<
 
   set value(value: ValueAtPath<TFormInput, TStringPath>) {
     atomic(() => {
-      set(this.formState.values as any, this.path, value);
+      set(this.formState.values as object, this.path, value);
       this.form.validate();
     });
   }
@@ -113,6 +113,18 @@ export abstract class KeckFieldBase<
 
   get isValid(): boolean {
     return derive(() => this.errors.length === 0);
+  }
+
+  reset() {
+    atomic(() => {
+      set(
+        this.formState.values as object,
+        this.path,
+        cloneDeep(get(this.formState.initial, this.path)),
+      );
+      this.touched = false;
+      this.form.validate();
+    });
   }
 }
 
