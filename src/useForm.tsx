@@ -1,9 +1,7 @@
-import { useFormContext } from 'keck-forms/useFormContext';
 import { useObserver } from 'keck/react';
 import type React from 'react';
 import { Fragment } from 'react';
 import { useRef } from 'react';
-import { createContext } from 'react';
 import {
   type FormValidatorFn,
   KeckForm,
@@ -13,6 +11,7 @@ import {
   stateAccessor,
 } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
+import { keckFormContext, useFormContext } from './useFormContext';
 
 export type UseFormReturn<
   TFormInput extends ObjectOrUnknown,
@@ -22,9 +21,10 @@ export type UseFormReturn<
   FormProvider: React.FC<{ children: React.ReactNode | React.ReactNode[] }>;
 };
 
-export const keckFormContext = createContext<KeckForm<unknown, unknown> | null>(null);
-
-export function useForm<TFormInput extends object, TFormOutput extends object>(options: {
+export function useForm<
+  TFormInput extends object,
+  TFormOutput extends object = TFormInput,
+>(options: {
   tryContext?: boolean;
   initial: TFormInput;
   validate: FormValidatorFn<TFormInput, TFormOutput>;
@@ -55,7 +55,6 @@ export function useForm<TFormInput extends object, TFormOutput extends object>(o
 
   formRef.current.form[reassignOptions](options);
   formRef.current.form[stateAccessor] = useObserver(formRef.current.form[stateAccessor]);
-  formRef.current.form.initial = options.initial;
 
   return formRef.current;
 }

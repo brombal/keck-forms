@@ -12,12 +12,18 @@ declare class KeckFieldArray<TFormInput extends object, TStringPath extends Stri
      * Maps each field in the array to a new value by invoking the callback function.
      */
     map<TReturn>(_callback: (field: KeckFieldForPath<TFormInput, `${TStringPath}.${number}` extends StringPath<TFormInput> ? `${TStringPath}.${number}` : never>, index: number) => TReturn): TReturn[];
-    get errors(): string[];
+    get allErrors(): Array<{
+        path: string;
+        errors: string[];
+    }>;
 }
 
 declare class KeckFieldObject<TFormInput extends object, TStringPath extends StringPath<TFormInput>> extends KeckFieldBase<TFormInput, TStringPath> {
     field<TPath extends string>(_path: TPath): `${TStringPath}.${TPath}` extends StringPath<TFormInput> ? KeckFieldForPath<TFormInput, `${TStringPath}.${TPath}` extends StringPath<TFormInput> ? `${TStringPath}.${TPath}` : never> : never;
-    get errors(): string[];
+    get allErrors(): Array<{
+        path: string;
+        errors: string[];
+    }>;
 }
 
 interface KeckFormState<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
@@ -59,16 +65,14 @@ declare const reassignOptions: unique symbol;
  */
 declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
     private [stateAccessor];
-    private validator;
-    private onSubmit;
-    private onSubmitAttempt;
+    private shared;
     /**
      * Creates a KeckForm by providing an initial state and a validation function.
      * @param options The initial state and validation function.
      */
     constructor(options: KeckFormOptionsInternal<TFormInput, TFormOutput>);
     constructor(options: KeckFormOptions<TFormInput, TFormOutput>);
-    [reassignOptions](options: KeckFormOptions<TFormInput, TFormOutput>): void;
+    [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>): void;
     get initial(): TFormInput;
     set initial(value: TFormInput);
     get output(): TFormOutput | null;
@@ -79,6 +83,10 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     get touched(): boolean;
     set touched(touched: boolean);
     get errors(): string[];
+    get allErrors(): {
+        path: string;
+        errors: string[];
+    }[];
     /**
      * Resets the form state. You can optionally reset specific parts of the form state:
      * - **values** - Reset the values to the initial values.
@@ -148,6 +156,10 @@ declare abstract class KeckFieldBase<TFormInput extends ObjectOrUnknown, TString
     get touched(): boolean;
     set touched(value: boolean);
     get errors(): string[];
+    get allErrors(): Array<{
+        path: string;
+        errors: string[];
+    }>;
     get isValid(): boolean;
     reset(): void;
 }
@@ -160,7 +172,7 @@ type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends Objec
         children: React.ReactNode | React.ReactNode[];
     }>;
 };
-declare function useForm<TFormInput extends object, TFormOutput extends object>(options: {
+declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(options: {
     tryContext?: boolean;
     initial: TFormInput;
     validate: FormValidatorFn<TFormInput, TFormOutput>;
@@ -171,6 +183,6 @@ declare function useForm<TFormInput extends object, TFormOutput extends object>(
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider: true): KeckForm<TFormInput, TFormOutput> | null;
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider?: false): KeckForm<TFormInput, TFormOutput>;
 
-declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => FormValidatorFn<z.input<TSchema>, z.output<TSchema>>;
+declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => TSchema extends z.Schema ? FormValidatorFn<any, z.output<TSchema>> : never;
 
 export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, type KeckFormOptions, useForm, useFormContext, zodValidator };

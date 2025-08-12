@@ -73,9 +73,11 @@ export const reassignOptions = Symbol('reassignOptions');
 export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
   private [stateAccessor]: KeckFormState<TFormInput, TFormOutput>;
 
-  private validator: FormValidatorFn<TFormInput, TFormOutput>;
-  private onSubmit: OnSubmitFn<TFormOutput> | undefined;
-  private onSubmitAttempt: OnSubmitAttemptFn | undefined;
+  private shared: {
+    validate: FormValidatorFn<TFormInput, TFormOutput>;
+    onSubmit: OnSubmitFn<TFormOutput> | undefined;
+    onSubmitAttempt: OnSubmitAttemptFn | undefined;
+  };
 
   /**
    * Creates a KeckForm by providing an initial state and a validation function.
@@ -90,13 +92,8 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
   ) {
     if ('form' in options) {
       this[stateAccessor] = options.state;
-      this.validator = options.form.validator;
-      this.onSubmit = options.form.onSubmit;
-      this.onSubmitAttempt = options.form.onSubmitAttempt;
+      this.shared = options.form.shared;
     } else if ('initial' in options) {
-      this.validator = options.validate;
-      this.onSubmit = options.onSubmit;
-      this.onSubmitAttempt = options.onSubmitAttempt;
       this[stateAccessor] = observe({
         initial: options.initial,
         values: cloneDeep(options.initial),
@@ -107,16 +104,22 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
         submitCount: 0,
         submitAttemptCount: 0,
       });
+      this.shared = {
+        validate: options.validate,
+        onSubmit: options.onSubmit,
+        onSubmitAttempt: options.onSubmitAttempt,
+      };
       this.validate();
     } else {
       throw new Error('Invalid options provided to KeckForm constructor');
     }
   }
 
-  [reassignOptions](options: KeckFormOptions<TFormInput, TFormOutput>) {
-    this.validator = options.validate;
-    this.onSubmit = options.onSubmit;
-    this.onSubmitAttempt = options.onSubmitAttempt;
+  [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>) {
+    if (options.onSubmit) this.shared.onSubmit = options.onSubmit;
+    if (options.onSubmitAttempt) this.shared.onSubmitAttempt = options.onSubmitAttempt;
+    if (options.validate) this.shared.validate = options.validate;
+    if (options.initial) this[stateAccessor].initial = options.initial;
   }
 
   get initial() {
@@ -138,7 +141,7 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
   validate(): TFormOutput | null {
     return atomic(() => {
       const errors = {} as Record<string, string[]>;
-      this[stateAccessor].output = this.validator(
+      this[stateAccessor].output = this.shared.validate(
         cloneDeep(unwrap(this[stateAccessor].values)),
         (field, error, action = 'push') => {
           if (!error) {
@@ -174,6 +177,10 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
 
   get errors() {
     return this.field('' as any).errors;
+  }
+
+  get allErrors() {
+    return this.field('' as any).allErrors;
   }
 
   /**
@@ -280,9 +287,9 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
       this[stateAccessor].submitAttemptCount++;
       if (output && this.isValid) {
         this[stateAccessor].submitCount++;
-        await this.onSubmit?.(output);
+        await this.shared.onSubmit?.(output);
       } else {
-        await this.onSubmitAttempt?.();
+        await this.shared.onSubmitAttempt?.();
       }
     } finally {
       this[stateAccessor].isSubmitting = false;

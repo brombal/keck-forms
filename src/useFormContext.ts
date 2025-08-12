@@ -1,8 +1,9 @@
 import { useObserver } from 'keck/react';
-import { useContext, useRef } from 'react';
+import { createContext, useContext, useRef } from 'react';
 import { KeckForm, type KeckFormOptionsInternal, stateAccessor } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
-import { keckFormContext } from './useForm';
+
+export const keckFormContext = createContext<KeckForm<unknown, unknown> | null>(null);
 
 export function useFormContext<
   TFormInput extends ObjectOrUnknown = unknown,

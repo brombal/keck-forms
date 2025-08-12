@@ -2,7 +2,7 @@ import { atomic, derive, unwrap, shallowCompare, observe, transformInPlace, peek
 import { get as get$1, set, isEqual, unset, isEmpty, cloneDeep } from 'lodash-es';
 import { jsx } from 'react/jsx-runtime';
 import { useObserver } from 'keck/react';
-import { useContext, useRef, createContext, Fragment } from 'react';
+import { createContext, useContext, useRef, Fragment } from 'react';
 
 function get(obj, path) {
     return !path?.length ? obj : get$1(obj, path);
@@ -89,8 +89,13 @@ class KeckFieldBase {
     get errors() {
         return derive(() => this.formState.errors[this.path] || [], shallowCompare);
     }
+    get allErrors() {
+        return derive(() => this.formState.errors[this.path]
+            ? [{ path: this.path, errors: this.formState.errors[this.path] || [] }]
+            : [], (a, b) => JSON.stringify(a) === JSON.stringify(b));
+    }
     get isValid() {
-        return derive(() => this.errors.length === 0);
+        return derive(() => this.allErrors.length === 0);
     }
     reset() {
         atomic(() => {
@@ -110,12 +115,11 @@ class KeckFieldArray extends KeckFieldBase {
     map(_callback) {
         return [];
     }
-    get errors() {
+    get allErrors() {
         return derive(() => {
-            return Object.entries(this.formState.errors)
-                .filter(([key]) => key.startsWith(this.path))
-                .flatMap(([, value]) => value);
-        }, shallowCompare);
+            const entries = Object.entries(this.formState.errors).filter(([key]) => key.startsWith(this.path));
+            return entries.map(([path, errors]) => ({ path, errors }));
+        }, (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
 }
 
@@ -123,12 +127,11 @@ class KeckFieldObject extends KeckFieldBase {
     field(_path) {
         return this.form.field(`${this.path}.${_path}`);
     }
-    get errors() {
+    get allErrors() {
         return derive(() => {
-            return Object.entries(this.formState.errors)
-                .filter(([key]) => key.startsWith(this.path))
-                .flatMap(([, value]) => value);
-        }, shallowCompare);
+            const entries = Object.entries(this.formState.errors).filter(([key]) => key.startsWith(this.path));
+            return entries.map(([path, errors]) => ({ path, errors }));
+        }, (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
 }
 
@@ -142,20 +145,13 @@ const reassignOptions = Symbol('reassignOptions');
  */
 class KeckForm {
     [stateAccessor];
-    validator;
-    onSubmit;
-    onSubmitAttempt;
+    shared;
     constructor(options) {
         if ('form' in options) {
             this[stateAccessor] = options.state;
-            this.validator = options.form.validator;
-            this.onSubmit = options.form.onSubmit;
-            this.onSubmitAttempt = options.form.onSubmitAttempt;
+            this.shared = options.form.shared;
         }
         else if ('initial' in options) {
-            this.validator = options.validate;
-            this.onSubmit = options.onSubmit;
-            this.onSubmitAttempt = options.onSubmitAttempt;
             this[stateAccessor] = observe({
                 initial: options.initial,
                 values: cloneDeep(options.initial),
@@ -166,6 +162,11 @@ class KeckForm {
                 submitCount: 0,
                 submitAttemptCount: 0,
             });
+            this.shared = {
+                validate: options.validate,
+                onSubmit: options.onSubmit,
+                onSubmitAttempt: options.onSubmitAttempt,
+            };
             this.validate();
         }
         else {
@@ -173,9 +174,14 @@ class KeckForm {
         }
     }
     [reassignOptions](options) {
-        this.validator = options.validate;
-        this.onSubmit = options.onSubmit;
-        this.onSubmitAttempt = options.onSubmitAttempt;
+        if (options.onSubmit)
+            this.shared.onSubmit = options.onSubmit;
+        if (options.onSubmitAttempt)
+            this.shared.onSubmitAttempt = options.onSubmitAttempt;
+        if (options.validate)
+            this.shared.validate = options.validate;
+        if (options.initial)
+            this[stateAccessor].initial = options.initial;
     }
     get initial() {
         return this[stateAccessor].initial;
@@ -192,7 +198,7 @@ class KeckForm {
     validate() {
         return atomic(() => {
             const errors = {};
-            this[stateAccessor].output = this.validator(cloneDeep(unwrap(this[stateAccessor].values)), (field, error, action = 'push') => {
+            this[stateAccessor].output = this.shared.validate(cloneDeep(unwrap(this[stateAccessor].values)), (field, error, action = 'push') => {
                 if (!error) {
                     delete errors[field];
                     return;
@@ -223,6 +229,9 @@ class KeckForm {
     }
     get errors() {
         return this.field('').errors;
+    }
+    get allErrors() {
+        return this.field('').allErrors;
     }
     /**
      * Resets the form state. You can optionally reset specific parts of the form state:
@@ -312,10 +321,10 @@ class KeckForm {
             this[stateAccessor].submitAttemptCount++;
             if (output && this.isValid) {
                 this[stateAccessor].submitCount++;
-                await this.onSubmit?.(output);
+                await this.shared.onSubmit?.(output);
             }
             else {
-                await this.onSubmitAttempt?.();
+                await this.shared.onSubmitAttempt?.();
             }
         }
         finally {
@@ -333,6 +342,7 @@ class KeckForm {
     }
 }
 
+const keckFormContext = createContext(null);
 function useFormContext(dontThrowOnMissingProvider = false) {
     const form = useContext(keckFormContext);
     if (!form) {
@@ -351,7 +361,6 @@ function useFormContext(dontThrowOnMissingProvider = false) {
     return formRef.current;
 }
 
-const keckFormContext = createContext(null);
 function useForm(options) {
     const context = useFormContext(true);
     const contextFormReturn = options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
@@ -373,12 +382,11 @@ function useForm(options) {
     }
     formRef.current.form[reassignOptions](options);
     formRef.current.form[stateAccessor] = useObserver(formRef.current.form[stateAccessor]);
-    formRef.current.form.initial = options.initial;
     return formRef.current;
 }
 
 const zodValidator = (schema) => {
-    return (values, setError) => {
+    return ((values, setError) => {
         const result = schema.safeParse(values);
         if (result.success)
             return result.data;
@@ -387,7 +395,7 @@ const zodValidator = (schema) => {
             setError(path, error.message);
         }
         return null;
-    };
+    });
 };
 
 export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };

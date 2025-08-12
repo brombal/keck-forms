@@ -1,6 +1,6 @@
 {
   "name": "keck-forms",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Forms with Keck.js",
   "author": "Alex Brombal",
   "license": "MIT",
@@ -53,7 +53,7 @@
     "zod": "^3"
   },
   "dependencies": {
-    "keck": "^1.1.1",
+    "keck": "^1.2.0",
     "lodash-es": "^4.17.21"
   }
 }

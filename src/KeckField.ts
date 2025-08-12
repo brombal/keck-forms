@@ -111,8 +111,18 @@ export abstract class KeckFieldBase<
     return derive(() => (this.formState.errors[this.path] as string[]) || [], shallowCompare);
   }
 
+  get allErrors(): Array<{ path: string; errors: string[] }> {
+    return derive(
+      () =>
+        this.formState.errors[this.path]
+          ? [{ path: this.path, errors: this.formState.errors[this.path] || [] }]
+          : [],
+      (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    );
+  }
+
   get isValid(): boolean {
-    return derive(() => this.errors.length === 0);
+    return derive(() => this.allErrors.length === 0);
   }
 
   reset() {

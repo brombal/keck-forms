@@ -61,7 +61,7 @@ describe('validation', () => {
     const mockFn = jest.fn();
     const formObserver = form.observe(mockFn).focus();
 
-    void formObserver.field('age').isValid;
+    const _v = formObserver.field('age').isValid;
 
     form.field('age').value = 16;
     expect(mockFn).toHaveBeenCalledTimes(1);
@@ -108,20 +108,23 @@ describe('validation', () => {
     expect(form.field('friends.0.age').errors).toEqual([]);
     expect(form.field('friends.1.name').errors).toEqual(['Friend name is required']);
     expect(form.field('friends.1.age').errors).toEqual(['Friend must be 18 or older']);
-    expect(form.field('friends.1').errors).toEqual([
-      'Friend name is required',
-      'Friend must be 18 or older',
+    expect(form.field('friends.1').errors).toEqual([]);
+    expect(form.field('friends.1').allErrors).toEqual([
+      { path: 'friends.1.name', errors: ['Friend name is required'] },
+      { path: 'friends.1.age', errors: ['Friend must be 18 or older'] },
     ]);
-    expect(form.field('friends').errors).toEqual([
-      'Friend name is required',
-      'Friend name is required',
-      'Friend must be 18 or older',
+    expect(form.field('friends').errors).toEqual([]);
+    expect(form.field('friends').allErrors).toEqual([
+      { path: 'friends.0.name', errors: ['Friend name is required'] },
+      { path: 'friends.1.name', errors: ['Friend name is required'] },
+      { path: 'friends.1.age', errors: ['Friend must be 18 or older'] },
     ]);
-    expect(form.errors).toEqual([
-      'Name is required',
-      'Friend name is required',
-      'Friend name is required',
-      'Friend must be 18 or older',
+    expect(form.errors).toEqual([]);
+    expect(form.allErrors).toEqual([
+      { path: 'name', errors: ['Name is required'] },
+      { path: 'friends.0.name', errors: ['Friend name is required'] },
+      { path: 'friends.1.name', errors: ['Friend name is required'] },
+      { path: 'friends.1.age', errors: ['Friend must be 18 or older'] },
     ]);
   });
 });
