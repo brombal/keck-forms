@@ -27,7 +27,7 @@ export function useForm<
 >(options: {
   tryContext?: boolean;
   initial: TFormInput;
-  validate: FormValidatorFn<TFormInput, TFormOutput>;
+  validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
   onSubmit?: OnSubmitFn<TFormOutput>;
   onSubmitAttempt?: OnSubmitAttemptFn;
 }): UseFormReturn<TFormInput, TFormOutput> {

@@ -42,12 +42,17 @@ type OnSubmitAttemptFn = () => Promise<void> | void;
 /**
  * The public interface for the KeckForm class constructor parameters.
  */
-interface KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
+type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = {
     initial: TFormInput;
     validate: FormValidatorFn<TFormInput, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
-}
+} | {
+    initial: TFormInput;
+    validate?: never;
+    onSubmit?: OnSubmitFn<TFormOutput>;
+    onSubmitAttempt?: OnSubmitAttemptFn;
+};
 /**
  * The internal interface for the KeckForm class constructor parameters.
  */
@@ -63,7 +68,7 @@ declare const reassignOptions: unique symbol;
  * Note that a KeckForm is just a wrapper around an existing state object. Multiple KeckForm objects can exist that wrap
  * different Keck observers of the same underlying state object.
  */
-declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
+declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown = TFormInput> {
     private [stateAccessor];
     private shared;
     /**
@@ -175,7 +180,7 @@ type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends Objec
 declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(options: {
     tryContext?: boolean;
     initial: TFormInput;
-    validate: FormValidatorFn<TFormInput, TFormOutput>;
+    validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
 }): UseFormReturn<TFormInput, TFormOutput>;

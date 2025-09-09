@@ -14,6 +14,8 @@ describe('validation', () => {
     const form = new KeckForm({
       initial,
       validate: (input, setError) => {
+        // @ts-ignore expected to fail on unknown fields
+        input.asdf;
         if (input.age < 18) {
           setError('age', 'You must be 18 or older');
         }

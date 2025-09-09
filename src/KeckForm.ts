@@ -40,15 +40,22 @@ export type OnSubmitAttemptFn = () => Promise<void> | void;
 /**
  * The public interface for the KeckForm class constructor parameters.
  */
-export interface KeckFormOptions<
+export type KeckFormOptions<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown,
-> {
-  initial: TFormInput;
-  validate: FormValidatorFn<TFormInput, TFormOutput>;
-  onSubmit?: OnSubmitFn<TFormOutput>;
-  onSubmitAttempt?: OnSubmitAttemptFn;
-}
+> =
+  | {
+      initial: TFormInput;
+      validate: FormValidatorFn<TFormInput, TFormOutput>;
+      onSubmit?: OnSubmitFn<TFormOutput>;
+      onSubmitAttempt?: OnSubmitAttemptFn;
+    }
+  | {
+      initial: TFormInput;
+      validate?: never;
+      onSubmit?: OnSubmitFn<TFormOutput>;
+      onSubmitAttempt?: OnSubmitAttemptFn;
+    };
 
 /**
  * The internal interface for the KeckForm class constructor parameters.
@@ -70,11 +77,14 @@ export const reassignOptions = Symbol('reassignOptions');
  * Note that a KeckForm is just a wrapper around an existing state object. Multiple KeckForm objects can exist that wrap
  * different Keck observers of the same underlying state object.
  */
-export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
+export class KeckForm<
+  TFormInput extends ObjectOrUnknown,
+  TFormOutput extends ObjectOrUnknown = TFormInput,
+> {
   private [stateAccessor]: KeckFormState<TFormInput, TFormOutput>;
 
   private shared: {
-    validate: FormValidatorFn<TFormInput, TFormOutput>;
+    validate?: FormValidatorFn<TFormInput, TFormOutput>;
     onSubmit: OnSubmitFn<TFormOutput> | undefined;
     onSubmitAttempt: OnSubmitAttemptFn | undefined;
   };
@@ -141,19 +151,19 @@ export class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends Ob
   validate(): TFormOutput | null {
     return atomic(() => {
       const errors = {} as Record<string, string[]>;
-      this[stateAccessor].output = this.shared.validate(
-        cloneDeep(unwrap(this[stateAccessor].values)),
-        (field, error, action = 'push') => {
-          if (!error) {
-            delete errors[field];
-            return;
-          }
-          errors[field] ||= [];
-          if (action === 'push') errors[field].push(error);
-          else if (action === 'unshift') errors[field].unshift(error);
-          else errors[field] = [error];
-        },
-      );
+      const input = cloneDeep(unwrap(this[stateAccessor].values));
+      this[stateAccessor].output = this.shared.validate
+        ? this.shared.validate(input, (field, error, action = 'push') => {
+            if (!error) {
+              delete errors[field];
+              return;
+            }
+            errors[field] ||= [];
+            if (action === 'push') errors[field].push(error);
+            else if (action === 'unshift') errors[field].unshift(error);
+            else errors[field] = [error];
+          })
+        : (input as unknown as TFormOutput);
       this[stateAccessor].errors = transformInPlace(this[stateAccessor].errors, errors);
       return unwrap(this[stateAccessor].output);
     });

@@ -4,7 +4,15 @@ describe('smoke', () => {
   test('keck forms should have basic functionality', () => {
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: () => ({}),
+    });
+
+    const _form2 = new KeckForm({
+      initial: { name: 'John' },
+      onSubmit: (output) => {
+        output.name;
+        // @ts-ignore expected to fail on unknown fields
+        output.asdf;
+      },
     });
 
     const nameField = form.field('name');
@@ -19,7 +27,6 @@ describe('smoke', () => {
     void (() => {
       const form = new KeckForm({
         initial: { name: 'John', age: 20 },
-        validate: () => ({}),
       });
 
       form.field('name').value.toUpperCase();
@@ -30,7 +37,6 @@ describe('smoke', () => {
 
       const unknownForm: KeckForm<unknown, unknown> = new KeckForm({
         initial: {} as unknown,
-        validate: () => ({}) as unknown,
       });
       void unknownForm.field<string>('name').value.toUpperCase;
       void unknownForm.field<number>('age').value.toFixed;

@@ -198,19 +198,22 @@ class KeckForm {
     validate() {
         return atomic(() => {
             const errors = {};
-            this[stateAccessor].output = this.shared.validate(cloneDeep(unwrap(this[stateAccessor].values)), (field, error, action = 'push') => {
-                if (!error) {
-                    delete errors[field];
-                    return;
-                }
-                errors[field] ||= [];
-                if (action === 'push')
-                    errors[field].push(error);
-                else if (action === 'unshift')
-                    errors[field].unshift(error);
-                else
-                    errors[field] = [error];
-            });
+            const input = cloneDeep(unwrap(this[stateAccessor].values));
+            this[stateAccessor].output = this.shared.validate
+                ? this.shared.validate(input, (field, error, action = 'push') => {
+                    if (!error) {
+                        delete errors[field];
+                        return;
+                    }
+                    errors[field] ||= [];
+                    if (action === 'push')
+                        errors[field].push(error);
+                    else if (action === 'unshift')
+                        errors[field].unshift(error);
+                    else
+                        errors[field] = [error];
+                })
+                : input;
             this[stateAccessor].errors = transformInPlace(this[stateAccessor].errors, errors);
             return unwrap(this[stateAccessor].output);
         });
