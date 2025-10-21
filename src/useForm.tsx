@@ -8,7 +8,6 @@ import {
   type OnSubmitAttemptFn,
   type OnSubmitFn,
   reassignOptions,
-  stateAccessor,
 } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
 import { keckFormContext, useFormContext } from './useFormContext';
@@ -21,23 +20,34 @@ export type UseFormReturn<
   FormProvider: React.FC<{ children: React.ReactNode | React.ReactNode[] }>;
 };
 
-export function useForm<
-  TFormInput extends object,
-  TFormOutput extends object = TFormInput,
->(options: {
-  tryContext?: boolean;
-  initial: TFormInput;
-  validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
-  onSubmit?: OnSubmitFn<TFormOutput>;
-  onSubmitAttempt?: OnSubmitAttemptFn;
-}): UseFormReturn<TFormInput, TFormOutput> {
+export function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(
+  options: {
+    tryContext?: boolean;
+    initial: TFormInput;
+    validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
+    onSubmit?: OnSubmitFn<TFormOutput>;
+    onSubmitAttempt?: OnSubmitAttemptFn;
+  },
+  deps?: any[],
+): UseFormReturn<TFormInput, TFormOutput> {
   const context = useFormContext<TFormInput, TFormOutput>(true);
   const contextFormReturn =
     options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
 
   const formRef = useRef<UseFormReturn<TFormInput, TFormOutput>>(contextFormReturn);
 
-  if (!formRef.current) {
+  const previousDepsRef = useRef<any[] | undefined>(undefined);
+  const depsChanged =
+    !!deps?.length &&
+    (!previousDepsRef.current ||
+      deps.length !== previousDepsRef.current.length ||
+      deps.some((dep, index) => dep !== previousDepsRef.current?.[index]));
+
+  if (depsChanged) {
+    previousDepsRef.current = deps;
+  }
+
+  if (depsChanged || !formRef.current) {
     const form = new KeckForm<TFormInput, TFormOutput>({
       initial: options.initial,
       validate: options.validate,
@@ -54,7 +64,9 @@ export function useForm<
   }
 
   formRef.current.form[reassignOptions](options);
-  formRef.current.form[stateAccessor] = useObserver(formRef.current.form[stateAccessor]);
 
-  return formRef.current;
+  return {
+    form: useObserver(formRef.current.form, [formRef.current.form]),
+    FormProvider: formRef.current.FormProvider,
+  };
 }

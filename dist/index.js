@@ -1,8 +1,12 @@
-import { atomic, derive, unwrap, shallowCompare, observe, transformInPlace, peek, focus } from 'keck';
+import { atomic, derive, unwrap, shallowCompare, registerObservableClass, transformInPlace, peek, observe } from 'keck';
 import { get as get$1, set, isEqual, unset, isEmpty, cloneDeep } from 'lodash-es';
 import { jsx } from 'react/jsx-runtime';
 import { useObserver } from 'keck/react';
-import { createContext, useContext, useRef, Fragment } from 'react';
+import { createContext, useContext, Fragment, useRef } from 'react';
+
+const $values = Symbol('$values');
+const $errors = Symbol('$errors');
+const $touched = Symbol('$touched');
 
 function get(obj, path) {
     return !path?.length ? obj : get$1(obj, path);
@@ -10,39 +14,42 @@ function get(obj, path) {
 
 class KeckFieldBase {
     form;
-    formState;
     path;
-    constructor(form, formState, path) {
+    constructor(form, path) {
         this.form = form;
-        this.formState = formState;
         this.path = path;
     }
     get value() {
-        return get(this.formState.values, this.path);
+        return get(this.form[$values], this.path);
     }
     set value(value) {
         atomic(() => {
-            set(this.formState.values, this.path, value);
+            if (this.path) {
+                set(this.form[$values], this.path, value);
+            }
+            else {
+                this.form[$values] = value;
+            }
             this.form.validate();
         });
     }
     get dirty() {
         // Field is dirty if the value is different from the initial value
         return derive(() => {
-            const initialValue = get(this.formState.initial, this.path);
+            const initialValue = get(this.form.initial, this.path);
             return !isEqual(unwrap(initialValue), unwrap(this.value));
         });
     }
     get touched() {
         return derive(() => {
-            if (get(this.formState.touched, this.path))
+            if (get(this.form[$touched], this.path))
                 return true;
             // work up the path to see if any parent fields have allTouched
             const path = this.path.split('.');
             for (let i = path.length - 1; i >= 0; i--) {
                 path.pop();
                 // TODO: could be more performant by starting from the top and only descending if object?
-                if (get(this.formState.touched, path.join('.')) === true)
+                if (get(this.form[$touched], path.join('.')) === true)
                     return true;
             }
             return false;
@@ -57,41 +64,41 @@ class KeckFieldBase {
         atomic(() => {
             if (value) {
                 if (this.path) {
-                    this.formState.touched ||= {};
-                    set(this.formState.touched, this.path, true);
+                    this.form[$touched] ||= {};
+                    set(this.form[$touched], this.path, true);
                 }
                 else
-                    this.formState.touched = true;
+                    this.form[$touched] = true;
             }
             else if (this.path) {
                 const path = this.path.split('.');
-                unset(this.formState.touched, path);
+                unset(this.form[$touched], path);
                 while (path.length) {
                     path.pop();
-                    const pathValue = get(this.formState.touched, path);
+                    const pathValue = get(this.form[$touched], path);
                     if (isEmpty(pathValue) ||
                         (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p)))) {
-                        unset(this.formState.touched, path);
+                        unset(this.form[$touched], path);
                     }
                     else {
                         break;
                     }
                 }
-                if (isEmpty(this.formState.touched)) {
-                    this.formState.touched = false;
+                if (isEmpty(this.form[$touched])) {
+                    this.form[$touched] = false;
                 }
             }
             else {
-                this.formState.touched = false;
+                this.form[$touched] = false;
             }
         });
     }
     get errors() {
-        return derive(() => this.formState.errors[this.path] || [], shallowCompare);
+        return derive(() => this.form[$errors][this.path] || [], shallowCompare);
     }
     get allErrors() {
-        return derive(() => this.formState.errors[this.path]
-            ? [{ path: this.path, errors: this.formState.errors[this.path] || [] }]
+        return derive(() => this.form[$errors][this.path]
+            ? [{ path: this.path, errors: this.form[$errors][this.path] || [] }]
             : [], (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
     get isValid() {
@@ -99,7 +106,13 @@ class KeckFieldBase {
     }
     reset() {
         atomic(() => {
-            set(this.formState.values, this.path, cloneDeep(get(this.formState.initial, this.path)));
+            const value = cloneDeep(get(this.form.initial, this.path));
+            if (this.path) {
+                set(this.form[$values], this.path, value);
+            }
+            else {
+                this.form[$values] = value;
+            }
             this.touched = false;
             this.form.validate();
         });
@@ -117,7 +130,7 @@ class KeckFieldArray extends KeckFieldBase {
     }
     get allErrors() {
         return derive(() => {
-            const entries = Object.entries(this.formState.errors).filter(([key]) => key.startsWith(this.path));
+            const entries = Object.entries(this.form[$errors]).filter(([key]) => key.startsWith(this.path));
             return entries.map(([path, errors]) => ({ path, errors }));
         }, (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
@@ -129,68 +142,53 @@ class KeckFieldObject extends KeckFieldBase {
     }
     get allErrors() {
         return derive(() => {
-            const entries = Object.entries(this.formState.errors).filter(([key]) => key.startsWith(this.path));
+            const entries = Object.entries(this.form[$errors]).filter(([key]) => key.startsWith(this.path));
             return entries.map(([path, errors]) => ({ path, errors }));
         }, (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
 }
 
-const stateAccessor = Symbol('state');
 const reassignOptions = Symbol('reassignOptions');
 /**
- * The base class for a Keck Form, which is created by providing a state object. The state object should be a configured Keck observer.
- *
- * Note that a KeckForm is just a wrapper around an existing state object. Multiple KeckForm objects can exist that wrap
- * different Keck observers of the same underlying state object.
+ * A KeckForm object represents the entire state of a form.
  */
 class KeckForm {
-    [stateAccessor];
-    shared;
+    initial;
+    [$values];
+    [$touched] = null;
+    [$errors] = {};
+    _output = null;
+    _isSubmitting = false;
+    _submitCount = 0;
+    _submitAttemptCount = 0;
+    _submitError = null;
+    validator;
+    onSubmit;
+    onSubmitAttempt;
+    /**
+     * Creates a KeckForm by providing an initial state and a validation function.
+     * @param options The initial state and validation function.
+     */
     constructor(options) {
-        if ('form' in options) {
-            this[stateAccessor] = options.state;
-            this.shared = options.form.shared;
-        }
-        else if ('initial' in options) {
-            this[stateAccessor] = observe({
-                initial: options.initial,
-                values: cloneDeep(options.initial),
-                errors: {},
-                touched: null,
-                output: null,
-                isSubmitting: false,
-                submitCount: 0,
-                submitAttemptCount: 0,
-            });
-            this.shared = {
-                validate: options.validate,
-                onSubmit: options.onSubmit,
-                onSubmitAttempt: options.onSubmitAttempt,
-            };
-            this.validate();
-        }
-        else {
-            throw new Error('Invalid options provided to KeckForm constructor');
-        }
+        this.initial = options.initial;
+        this[$values] = cloneDeep(options.initial);
+        this.validator = options.validate;
+        this.onSubmit = options.onSubmit;
+        this.onSubmitAttempt = options.onSubmitAttempt;
+        this.validate();
     }
     [reassignOptions](options) {
         if (options.onSubmit)
-            this.shared.onSubmit = options.onSubmit;
+            this.onSubmit = options.onSubmit;
         if (options.onSubmitAttempt)
-            this.shared.onSubmitAttempt = options.onSubmitAttempt;
+            this.onSubmitAttempt = options.onSubmitAttempt;
         if (options.validate)
-            this.shared.validate = options.validate;
+            this.validator = options.validate;
         if (options.initial)
-            this[stateAccessor].initial = options.initial;
-    }
-    get initial() {
-        return this[stateAccessor].initial;
-    }
-    set initial(value) {
-        this[stateAccessor].initial = value;
+            this.initial = options.initial;
     }
     get output() {
-        return this[stateAccessor].output;
+        return this._output;
     }
     get value() {
         return this.field('').value;
@@ -198,9 +196,9 @@ class KeckForm {
     validate() {
         return atomic(() => {
             const errors = {};
-            const input = cloneDeep(unwrap(this[stateAccessor].values));
-            this[stateAccessor].output = this.shared.validate
-                ? this.shared.validate(input, (field, error, action = 'push') => {
+            const input = cloneDeep(unwrap(this[$values]));
+            this._output = this.validator
+                ? this.validator(input, (field, error, action = 'push') => {
                     if (!error) {
                         delete errors[field];
                         return;
@@ -214,8 +212,8 @@ class KeckForm {
                         errors[field] = [error];
                 })
                 : input;
-            this[stateAccessor].errors = transformInPlace(this[stateAccessor].errors, errors);
-            return unwrap(this[stateAccessor].output);
+            this[$errors] = transformInPlace(this[$errors], errors);
+            return unwrap(this._output);
         });
     }
     get isValid() {
@@ -245,12 +243,12 @@ class KeckForm {
     reset(resetOptions) {
         atomic(() => {
             if (!resetOptions || resetOptions.values === true)
-                this[stateAccessor].values = cloneDeep(unwrap(this[stateAccessor].initial));
+                this[$values] = cloneDeep(unwrap(this.initial));
             if (!resetOptions || resetOptions.touched === true)
-                this[stateAccessor].touched = null;
+                this[$touched] = null;
             if (!resetOptions || resetOptions.submit === true) {
-                this[stateAccessor].submitCount = 0;
-                this[stateAccessor].submitAttemptCount = 0;
+                this._submitCount = 0;
+                this._submitAttemptCount = 0;
             }
             this.validate();
         });
@@ -266,47 +264,37 @@ class KeckForm {
      */
     field(path) {
         return peek(() => {
-            const value = get(this[stateAccessor].values, path);
+            const value = get(this[$values], path);
             // TFormInput could be 'unknown', which KeckFieldArray and KeckFieldObject won't accept.
             // But we know the type, and the field() method return type is explicit, so we can cast values as any to ignore TS errors.
             if (Array.isArray(value))
-                return new KeckFieldArray(this, this[stateAccessor], path);
+                return new KeckFieldArray(this, path);
             if (typeof value === 'object')
-                return new KeckFieldObject(this, this[stateAccessor], path);
-            return new KeckField(this, this[stateAccessor], path);
+                return new KeckFieldObject(this, path);
+            return new KeckField(this, path);
         });
     }
-    focus() {
-        focus(this[stateAccessor]);
-        return this;
-    }
-    /**
-     * Adds a callback that will be called when the form state changes. This returns a new KeckForm
-     * object that can be used to observe specific fields in the form. E.g.:
-     *
-     * ```ts
-     * import { focus } from 'keck';
-     *
-     * const form = new KeckForm({ ... })
-     *
-     * // Add an observer callback
-     * const formObserver = form.observe(() => { console.log('form changed') });
-     *
-     * // Optional: "focus" the formObserver (using Keck's `focus` method) to ensure the callback is
-     * // only called upon changes to the specific properties accessed on this formObserver.
-     * // (If you don't call `focus`, the callback will be called on any change to the form state.)
-     * focus(formObserver);
-     * formObserver.field('name').value; // Access a property to observe changes to it
-     *
-     * // Changing a field value will trigger the callback:
-     * form.field('name').value = 'Jane'; // logs 'form changed'
-     * ```
-     */
-    observe(callback) {
-        return new KeckForm({
-            form: this,
-            state: observe(this[stateAccessor], callback),
-        });
+    async _handleSubmit(e) {
+        // Prevent default form submission if this is called from a form submit event
+        e?.preventDefault?.();
+        const output = this.validate();
+        try {
+            this._isSubmitting = true;
+            this._submitAttemptCount++;
+            if (output && this.isValid) {
+                this._submitCount++;
+                await this.onSubmit?.(output);
+            }
+            else {
+                await this.onSubmitAttempt?.();
+            }
+        }
+        catch (e) {
+            this._submitError = e;
+        }
+        finally {
+            this._isSubmitting = false;
+        }
     }
     /**
      * Call this function to submit the form.
@@ -316,34 +304,23 @@ class KeckForm {
      * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
      */
     handleSubmit = async (e) => {
-        // Prevent default form submission if this is called from a form submit event
-        e?.preventDefault?.();
-        const output = this.validate();
-        try {
-            this[stateAccessor].isSubmitting = true;
-            this[stateAccessor].submitAttemptCount++;
-            if (output && this.isValid) {
-                this[stateAccessor].submitCount++;
-                await this.shared.onSubmit?.(output);
-            }
-            else {
-                await this.shared.onSubmitAttempt?.();
-            }
-        }
-        finally {
-            this[stateAccessor].isSubmitting = false;
-        }
+        const $this = observe(this);
+        await $this._handleSubmit(e);
     };
     get isSubmitting() {
-        return this[stateAccessor].isSubmitting;
+        return this._isSubmitting;
     }
     get submitCount() {
-        return this[stateAccessor].submitCount;
+        return this._submitCount;
     }
     get submitAttemptCount() {
-        return this[stateAccessor].submitAttemptCount;
+        return this._submitAttemptCount;
+    }
+    get submitError() {
+        return this._submitError;
     }
 }
+registerObservableClass(KeckForm);
 
 const keckFormContext = createContext(null);
 function useFormContext(dontThrowOnMissingProvider = false) {
@@ -356,19 +333,22 @@ function useFormContext(dontThrowOnMissingProvider = false) {
     // NOTE: It is an invariant error (i.e. a developer mistake) to change the value of `throwOnMissingProvider` or
     // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
     // are called.
-    const state = useObserver(form?.[stateAccessor]);
-    const formRef = useRef(null);
-    if (!formRef.current) {
-        formRef.current = new KeckForm({ form, state });
-    }
-    return formRef.current;
+    return useObserver(form);
 }
 
-function useForm(options) {
+function useForm(options, deps) {
     const context = useFormContext(true);
     const contextFormReturn = options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
     const formRef = useRef(contextFormReturn);
-    if (!formRef.current) {
+    const previousDepsRef = useRef(undefined);
+    const depsChanged = !!deps?.length &&
+        (!previousDepsRef.current ||
+            deps.length !== previousDepsRef.current.length ||
+            deps.some((dep, index) => dep !== previousDepsRef.current?.[index]));
+    if (depsChanged) {
+        previousDepsRef.current = deps;
+    }
+    if (depsChanged || !formRef.current) {
         const form = new KeckForm({
             initial: options.initial,
             validate: options.validate,
@@ -384,8 +364,10 @@ function useForm(options) {
         };
     }
     formRef.current.form[reassignOptions](options);
-    formRef.current.form[stateAccessor] = useObserver(formRef.current.form[stateAccessor]);
-    return formRef.current;
+    return {
+        form: useObserver(formRef.current.form, [formRef.current.form]),
+        FormProvider: formRef.current.FormProvider,
+    };
 }
 
 const zodValidator = (schema) => {

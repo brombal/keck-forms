@@ -1,20 +1,22 @@
 import { jest } from '@jest/globals';
+import { focus, observe } from 'keck';
 import { KeckForm, reassignOptions } from 'keck-forms/KeckForm';
 
 describe('observability', () => {
   test('field values should be observable', () => {
-    const form = new KeckForm({
-      initial: { name: 'John', age: 20 },
-      validate: () => ({}),
-    });
+    const form = observe(
+      new KeckForm({
+        initial: { name: 'John', age: 20 },
+        validate: () => ({}),
+      }),
+    );
 
     const mockFn = jest.fn();
 
     // Use the .observe method to observe the form with a callback.
-    const formObserver = form.observe(mockFn);
-
+    const formObserver = observe(form, mockFn);
     // Focus the formObserver to start observing changes to specific properties
-    formObserver.focus();
+    focus(formObserver);
 
     // Use the observer's `.field` method to get a specific field and access its value to start observing changes to it.
     formObserver.field('name').value;
@@ -31,18 +33,19 @@ describe('observability', () => {
   test('Correct validate function should be called when replaced', () => {
     const mockValidateFn = jest.fn();
 
-    const form = new KeckForm({
-      initial: { name: 'John', age: 20 },
-      validate: mockValidateFn,
-    });
+    const form = observe(
+      new KeckForm({
+        initial: { name: 'John', age: 20 },
+        validate: mockValidateFn,
+      }),
+    );
 
     const mockObserveFn = jest.fn();
 
     // Use the .observe method to observe the form with a callback.
-    const formObserver = form.observe(mockObserveFn);
-
+    const formObserver = observe(form, mockObserveFn);
     // Focus the formObserver to start observing changes to specific properties
-    formObserver.focus();
+    focus(formObserver);
 
     // Use the observer's `.field` method to get a specific field and access its value to start observing changes to it.
     formObserver.field('name').value;

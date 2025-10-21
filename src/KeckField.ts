@@ -2,7 +2,8 @@ import { atomic, derive, shallowCompare, unwrap } from 'keck';
 import { cloneDeep, isEmpty, isEqual, set, unset } from 'lodash-es';
 import type { KeckFieldArray } from './KeckFieldArray';
 import type { KeckFieldObject } from './KeckFieldObject';
-import type { KeckForm, KeckFormState } from './KeckForm';
+import type { KeckForm } from './KeckForm';
+import { $errors, $touched, $values } from './KeckForm.internalFields';
 import type { ObjectOrUnknown, StringPath, ValueAtPath } from './types';
 import { get } from './util/get';
 
@@ -29,17 +30,20 @@ export abstract class KeckFieldBase<
 > {
   constructor(
     public readonly form: KeckForm<TFormInput, unknown>,
-    protected readonly formState: KeckFormState<TFormInput, unknown>,
     public readonly path: TStringPath,
   ) {}
 
   get value(): TFormInput extends object ? ValueAtPath<TFormInput, TStringPath> : unknown {
-    return get(this.formState.values, this.path) as any;
+    return get(this.form[$values], this.path) as any;
   }
 
   set value(value: ValueAtPath<TFormInput, TStringPath>) {
     atomic(() => {
-      set(this.formState.values as object, this.path, value);
+      if (this.path) {
+        set(this.form[$values] as object, this.path, value);
+      } else {
+        this.form[$values] = value as any;
+      }
       this.form.validate();
     });
   }
@@ -47,21 +51,21 @@ export abstract class KeckFieldBase<
   get dirty(): boolean {
     // Field is dirty if the value is different from the initial value
     return derive(() => {
-      const initialValue = get(this.formState.initial, this.path);
+      const initialValue = get(this.form.initial, this.path);
       return !isEqual(unwrap(initialValue), unwrap(this.value));
     });
   }
 
   get touched(): boolean {
     return derive(() => {
-      if (get(this.formState.touched, this.path)) return true;
+      if (get(this.form[$touched], this.path)) return true;
 
       // work up the path to see if any parent fields have allTouched
       const path = this.path.split('.');
       for (let i = path.length - 1; i >= 0; i--) {
         path.pop();
         // TODO: could be more performant by starting from the top and only descending if object?
-        if (get(this.formState.touched, path.join('.')) === true) return true;
+        if (get(this.form[$touched], path.join('.')) === true) return true;
       }
 
       return false;
@@ -78,44 +82,44 @@ export abstract class KeckFieldBase<
     atomic(() => {
       if (value) {
         if (this.path) {
-          this.formState.touched ||= {};
-          set(this.formState.touched, this.path, true);
-        } else this.formState.touched = true;
+          this.form[$touched] ||= {};
+          set(this.form[$touched], this.path, true);
+        } else this.form[$touched] = true;
       } else if (this.path) {
         const path = this.path.split('.');
-        unset(this.formState.touched, path);
+        unset(this.form[$touched], path);
 
         while (path.length) {
           path.pop();
-          const pathValue = get(this.formState.touched, path);
+          const pathValue = get(this.form[$touched], path);
           if (
             isEmpty(pathValue) ||
             (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p)))
           ) {
-            unset(this.formState.touched, path);
+            unset(this.form[$touched], path);
           } else {
             break;
           }
         }
 
-        if (isEmpty(this.formState.touched)) {
-          this.formState.touched = false;
+        if (isEmpty(this.form[$touched])) {
+          this.form[$touched] = false;
         }
       } else {
-        this.formState.touched = false;
+        this.form[$touched] = false;
       }
     });
   }
 
   get errors(): string[] {
-    return derive(() => (this.formState.errors[this.path] as string[]) || [], shallowCompare);
+    return derive(() => (this.form[$errors][this.path] as string[]) || [], shallowCompare);
   }
 
   get allErrors(): Array<{ path: string; errors: string[] }> {
     return derive(
       () =>
-        this.formState.errors[this.path]
-          ? [{ path: this.path, errors: this.formState.errors[this.path] || [] }]
+        this.form[$errors][this.path]
+          ? [{ path: this.path, errors: this.form[$errors][this.path] || [] }]
           : [],
       (a, b) => JSON.stringify(a) === JSON.stringify(b),
     );
@@ -127,11 +131,12 @@ export abstract class KeckFieldBase<
 
   reset() {
     atomic(() => {
-      set(
-        this.formState.values as object,
-        this.path,
-        cloneDeep(get(this.formState.initial, this.path)),
-      );
+      const value = cloneDeep(get(this.form.initial, this.path));
+      if (this.path) {
+        set(this.form[$values] as object, this.path, value);
+      } else {
+        this.form[$values] = value as any;
+      }
       this.touched = false;
       this.form.validate();
     });

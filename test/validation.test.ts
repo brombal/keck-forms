@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 import { zodValidator } from 'keck-forms/zodValidator';
 import { z } from 'zod';
@@ -44,26 +45,29 @@ describe('validation', () => {
       friends: [{ name: 'Alice', age: 30 }],
     };
 
-    const form = new KeckForm({
-      initial,
-      validate: (input, setError) => {
-        if (input.age < 18) {
-          setError('age', 'You must be 18 or older');
-        }
-        if (input.age % 2 === 1) {
-          setError('age', 'Age must be even');
-        }
-        if (input.friends.length === 0) {
-          setError('friends', 'You must have at least one friend');
-        }
-        return input;
-      },
-    });
+    const form = observe(
+      new KeckForm({
+        initial,
+        validate: (input, setError) => {
+          if (input.age < 18) {
+            setError('age', 'You must be 18 or older');
+          }
+          if (input.age % 2 === 1) {
+            setError('age', 'Age must be even');
+          }
+          if (input.friends.length === 0) {
+            setError('friends', 'You must have at least one friend');
+          }
+          return input;
+        },
+      }),
+    );
 
     const mockFn = jest.fn();
-    const formObserver = form.observe(mockFn).focus();
+    const formObserver = observe(form, mockFn);
+    focus(formObserver);
 
-    const _v = formObserver.field('age').isValid;
+    void formObserver.field('age').isValid;
 
     form.field('age').value = 16;
     expect(mockFn).toHaveBeenCalledTimes(1);

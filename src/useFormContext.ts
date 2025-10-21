@@ -1,6 +1,6 @@
 import { useObserver } from 'keck/react';
-import { createContext, useContext, useRef } from 'react';
-import { KeckForm, type KeckFormOptionsInternal, stateAccessor } from './KeckForm';
+import { createContext, useContext } from 'react';
+import type { KeckForm } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
 
 export const keckFormContext = createContext<KeckForm<unknown, unknown> | null>(null);
@@ -30,15 +30,5 @@ export function useFormContext<
   // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
   // are called.
 
-  const state = useObserver(form?.[stateAccessor]);
-
-  const formRef = useRef<KeckForm<TFormInput, TFormOutput>>(null);
-  if (!formRef.current) {
-    formRef.current = new KeckForm({ form, state } as KeckFormOptionsInternal<
-      TFormInput,
-      TFormOutput
-    >);
-  }
-
-  return formRef.current;
+  return useObserver(form);
 }

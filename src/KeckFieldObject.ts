@@ -1,5 +1,6 @@
 import { derive } from 'keck';
 import { KeckFieldBase, type KeckFieldForPath } from './KeckField';
+import { $errors } from './KeckForm.internalFields';
 import type { StringPath } from './types';
 
 export class KeckFieldObject<
@@ -20,7 +21,7 @@ export class KeckFieldObject<
   get allErrors(): Array<{ path: string; errors: string[] }> {
     return derive(
       () => {
-        const entries = Object.entries(this.formState.errors).filter(([key]) =>
+        const entries = Object.entries(this.form[$errors]).filter(([key]) =>
           key.startsWith(this.path),
         );
         return entries.map(([path, errors]) => ({ path, errors }));

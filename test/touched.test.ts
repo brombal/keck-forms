@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 
 describe('touched', () => {
@@ -186,13 +187,16 @@ describe('touched', () => {
       friends: [{ name: 'Alice', age: 30 }],
     };
 
-    const form = new KeckForm({
-      initial,
-      validate: () => ({}),
-    });
+    const form = observe(
+      new KeckForm({
+        initial,
+        validate: () => ({}),
+      }),
+    );
 
     const mockFn = jest.fn();
-    const formObserver = form.observe(mockFn).focus();
+    const formObserver = observe(form, mockFn);
+    focus(formObserver);
 
     // Observe touched value
     void formObserver.field('friends.0.name').touched;

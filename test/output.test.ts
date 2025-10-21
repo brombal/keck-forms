@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 
 describe('output', () => {
@@ -28,16 +29,18 @@ describe('output', () => {
       age: '20' as string | number,
     };
 
-    const form = new KeckForm({
-      initial,
-      validate: (input) => {
-        input.age = Number(input.age);
-        return input as { name: string; age: number };
-      },
-    });
+    const form = observe(
+      new KeckForm({
+        initial,
+        validate: (input) => {
+          input.age = Number(input.age);
+          return input as { name: string; age: number };
+        },
+      }),
+    );
 
     const mockFn = jest.fn();
-    const formObserver = form.observe(mockFn).focus();
+    const formObserver = observe(form, mockFn);
 
     // observe name field only
     void formObserver.output?.name;

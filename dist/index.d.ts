@@ -26,16 +26,10 @@ declare class KeckFieldObject<TFormInput extends object, TStringPath extends Str
     }>;
 }
 
-interface KeckFormState<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> {
-    initial: TFormInput;
-    values: TFormInput;
-    output: TFormOutput | null;
-    touched: any;
-    errors: Record<string, string[]>;
-    isSubmitting: boolean;
-    submitCount: number;
-    submitAttemptCount: number;
-}
+declare const $values: unique symbol;
+declare const $errors: unique symbol;
+declare const $touched: unique symbol;
+
 type FormValidatorFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (input: TFormInput, setError: (field: StringPath<TFormInput>, error: string | null | undefined | false, action?: 'push' | 'unshift' | 'replace') => void) => TFormOutput | null;
 type OnSubmitFn<TFormOutput extends ObjectOrUnknown> = (output: TFormOutput) => Promise<void> | void;
 type OnSubmitAttemptFn = () => Promise<void> | void;
@@ -53,33 +47,29 @@ type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends Obj
     onSubmit?: OnSubmitFn<TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
 };
-/**
- * The internal interface for the KeckForm class constructor parameters.
- */
-type KeckFormOptionsInternal<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = {
-    form: KeckForm<TFormInput, TFormOutput>;
-    state: KeckFormState<TFormInput, TFormOutput>;
-};
-declare const stateAccessor: unique symbol;
 declare const reassignOptions: unique symbol;
 /**
- * The base class for a Keck Form, which is created by providing a state object. The state object should be a configured Keck observer.
- *
- * Note that a KeckForm is just a wrapper around an existing state object. Multiple KeckForm objects can exist that wrap
- * different Keck observers of the same underlying state object.
+ * A KeckForm object represents the entire state of a form.
  */
 declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown = TFormInput> {
-    private [stateAccessor];
-    private shared;
+    initial: TFormInput;
+    [$values]: TFormInput;
+    [$touched]: any;
+    [$errors]: Record<string, string[]>;
+    private _output;
+    private _isSubmitting;
+    private _submitCount;
+    private _submitAttemptCount;
+    private _submitError;
+    private validator?;
+    private onSubmit;
+    private onSubmitAttempt;
     /**
      * Creates a KeckForm by providing an initial state and a validation function.
      * @param options The initial state and validation function.
      */
-    constructor(options: KeckFormOptionsInternal<TFormInput, TFormOutput>);
     constructor(options: KeckFormOptions<TFormInput, TFormOutput>);
     [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>): void;
-    get initial(): TFormInput;
-    set initial(value: TFormInput);
     get output(): TFormOutput | null;
     get value(): TFormInput;
     validate(): TFormOutput | null;
@@ -105,30 +95,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     }): void;
     field<TReturn>(_path: unknown extends TFormInput ? string : never): unknown extends TFormInput ? TypedKeckField<TReturn> : never;
     field<TStringPath extends StringPath<TFormInput>>(_path: unknown extends TFormInput ? never : TStringPath): unknown extends TFormInput ? never : KeckFieldForPath<TFormInput, TStringPath>;
-    focus(): this;
-    /**
-     * Adds a callback that will be called when the form state changes. This returns a new KeckForm
-     * object that can be used to observe specific fields in the form. E.g.:
-     *
-     * ```ts
-     * import { focus } from 'keck';
-     *
-     * const form = new KeckForm({ ... })
-     *
-     * // Add an observer callback
-     * const formObserver = form.observe(() => { console.log('form changed') });
-     *
-     * // Optional: "focus" the formObserver (using Keck's `focus` method) to ensure the callback is
-     * // only called upon changes to the specific properties accessed on this formObserver.
-     * // (If you don't call `focus`, the callback will be called on any change to the form state.)
-     * focus(formObserver);
-     * formObserver.field('name').value; // Access a property to observe changes to it
-     *
-     * // Changing a field value will trigger the callback:
-     * form.field('name').value = 'Jane'; // logs 'form changed'
-     * ```
-     */
-    observe(callback: () => void): KeckForm<TFormInput, TFormOutput>;
+    private _handleSubmit;
     /**
      * Call this function to submit the form.
      *
@@ -140,6 +107,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     get isSubmitting(): boolean;
     get submitCount(): number;
     get submitAttemptCount(): number;
+    get submitError(): any;
 }
 
 type KeckFieldForPath<TFormInput extends ObjectOrUnknown, TStringPath extends StringPath<TFormInput>> = TFormInput extends object ? ValueAtPath<TFormInput, TStringPath> extends Array<infer _TFieldType> ? KeckFieldArray<TFormInput, TStringPath> : ValueAtPath<TFormInput, TStringPath> extends object ? KeckFieldObject<TFormInput, TStringPath> : KeckField<TFormInput, TStringPath> : KeckField<TFormInput, TStringPath>;
@@ -152,9 +120,8 @@ type TypedKeckField<TType> = Omit<KeckFieldBase<unknown, ''>, 'value'> & {
 };
 declare abstract class KeckFieldBase<TFormInput extends ObjectOrUnknown, TStringPath extends StringPath<TFormInput>> {
     readonly form: KeckForm<TFormInput, unknown>;
-    protected readonly formState: KeckFormState<TFormInput, unknown>;
     readonly path: TStringPath;
-    constructor(form: KeckForm<TFormInput, unknown>, formState: KeckFormState<TFormInput, unknown>, path: TStringPath);
+    constructor(form: KeckForm<TFormInput, unknown>, path: TStringPath);
     get value(): TFormInput extends object ? ValueAtPath<TFormInput, TStringPath> : unknown;
     set value(value: ValueAtPath<TFormInput, TStringPath>);
     get dirty(): boolean;
@@ -183,7 +150,7 @@ declare function useForm<TFormInput extends object, TFormOutput extends object =
     validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
-}): UseFormReturn<TFormInput, TFormOutput>;
+}, deps?: any[]): UseFormReturn<TFormInput, TFormOutput>;
 
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider: true): KeckForm<TFormInput, TFormOutput> | null;
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider?: false): KeckForm<TFormInput, TFormOutput>;

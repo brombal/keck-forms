@@ -1,3 +1,4 @@
+import { observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 
 describe('initial values', () => {
@@ -18,12 +19,15 @@ describe('initial values', () => {
   test('Initial values should be readable', () => {
     const initial = { name: 'John', age: 20 };
 
-    const form = new KeckForm({
-      initial,
-      validate: () => ({}),
-    });
+    const form = observe(
+      new KeckForm({
+        initial,
+        validate: () => ({}),
+      }),
+    );
 
     expect(form.initial).toEqual(initial);
+    // Proxy reference is different
     expect(form.initial).not.toBe(initial);
 
     // Check ts types
@@ -35,10 +39,12 @@ describe('initial values', () => {
   test('Initial values should be settable', () => {
     const initial = { name: 'John', age: 20 };
 
-    const form = new KeckForm({
-      initial,
-      validate: () => ({}),
-    });
+    const form = observe(
+      new KeckForm({
+        initial,
+        validate: () => ({}),
+      }),
+    );
 
     form.initial.name = 'Jane';
     form.initial.age = 30;
@@ -49,6 +55,7 @@ describe('initial values', () => {
     form.initial = newInitial;
 
     expect(form.initial).toEqual(newInitial);
+    // Proxy reference is different
     expect(form.initial).not.toBe(newInitial);
   });
 });
