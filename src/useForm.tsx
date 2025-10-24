@@ -63,10 +63,11 @@ export function useForm<TFormInput extends object, TFormOutput extends object = 
     };
   }
 
-  formRef.current.form[reassignOptions](options);
+  const form = useObserver(formRef.current.form, [formRef.current.form]);
+  form[reassignOptions](options);
 
   return {
-    form: useObserver(formRef.current.form, [formRef.current.form]),
+    form,
     FormProvider: formRef.current.FormProvider,
   };
 }

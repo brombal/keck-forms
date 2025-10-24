@@ -363,9 +363,10 @@ function useForm(options, deps) {
             },
         };
     }
-    formRef.current.form[reassignOptions](options);
+    const form = useObserver(formRef.current.form, [formRef.current.form]);
+    form[reassignOptions](options);
     return {
-        form: useObserver(formRef.current.form, [formRef.current.form]),
+        form,
         FormProvider: formRef.current.FormProvider,
     };
 }
