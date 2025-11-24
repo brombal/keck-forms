@@ -112,4 +112,28 @@ describe('values', () => {
     // @ts-expect-error wrong type
     void form.field('friends.0').field('age').value.toUpperCase;
   });
+
+  test('value of root field should be correct', () => {
+    const values = {
+      name: 'John',
+      age: 20,
+      friends: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 40 },
+      ],
+    };
+
+    const form = new KeckForm({
+      initial: values,
+      validate: () => ({}),
+    });
+
+    expect(form.field('').value).toEqual(values);
+    // expect types to be correct
+    void form.field('').value.name;
+    void form.field('').value.friends[0].name;
+
+    // @ts-expect-error wrong type
+    void form.field('').value.nothing;
+  });
 });

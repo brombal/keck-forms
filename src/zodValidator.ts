@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { FormValidatorFn } from './KeckForm';
-import type { StringPath } from './types';
+import type { StringPaths } from './types';
 
 export const zodValidator = <TSchema extends z.Schema<any>>(
   schema: TSchema,
@@ -11,7 +11,7 @@ export const zodValidator = <TSchema extends z.Schema<any>>(
 
     for (const error of result.error.errors) {
       const path = error.path.join('.');
-      setError(path as StringPath<z.input<TSchema>>, error.message);
+      setError(path as StringPaths<z.input<TSchema>>, error.message);
     }
 
     return null;

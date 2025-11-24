@@ -1,10 +1,11 @@
 import { atomic, observe, peek, registerObservableClass, transformInPlace, unwrap } from 'keck';
 import { cloneDeep } from 'lodash-es';
+import type { IsNever, IsUnknown } from 'type-fest';
 import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckField';
 import { KeckFieldArray } from './KeckFieldArray';
 import { KeckFieldObject } from './KeckFieldObject';
 import { $errors, $touched, $values } from './KeckForm.internalFields';
-import type { ObjectOrUnknown, StringPath } from './types';
+import type { ObjectOrUnknown, StringPaths } from './types';
 import { get } from './util/get';
 
 export type FormValidatorFn<
@@ -13,7 +14,7 @@ export type FormValidatorFn<
 > = (
   input: TFormInput,
   setError: (
-    field: StringPath<TFormInput>,
+    field: StringPaths<TFormInput>,
     error: string | null | undefined | false,
     action?: 'push' | 'unshift' | 'replace',
   ) => void,
@@ -101,7 +102,7 @@ export class KeckForm<
       const input = cloneDeep(unwrap(this[$values]));
       this._output = this.validator
         ? this.validator(input, (field, error, action = 'push') => {
-            if (!error) {
+            if (!error && error !== '') {
               delete errors[field];
               return;
             }
@@ -163,13 +164,15 @@ export class KeckForm<
     });
   }
 
-  field<TReturn>(
-    _path: unknown extends TFormInput ? string : never,
-  ): unknown extends TFormInput ? TypedKeckField<TReturn> : never;
-
-  field<TStringPath extends StringPath<TFormInput>>(
-    _path: unknown extends TFormInput ? never : TStringPath,
-  ): unknown extends TFormInput ? never : KeckFieldForPath<TFormInput, TStringPath>;
+  field<TReturn = never, TPath extends string = StringPaths<TFormInput>>(
+    path: IsNever<TReturn> extends true ? TPath & StringPaths<TFormInput> : string,
+  ): IsNever<TReturn> extends true
+    ? IsUnknown<TFormInput> extends true
+      ? TypedKeckField<unknown> // If TReturn is not specified and TFormInput is unknown, return KeckField of unknown type
+      : TPath extends StringPaths<TFormInput>
+        ? KeckFieldForPath<TFormInput, TPath> // If TReturn is not specified but form input type is known, return KeckFieldForPath
+        : never // If TReturn is not specified and TPath is not a valid path of TFormInput, return never
+    : TypedKeckField<TReturn>; // If TReturn is specified, return TypedKeckField of that type
 
   /**
    * Returns a KeckField object for the given path. This can be used to access the field value,
@@ -180,7 +183,7 @@ export class KeckForm<
    *
    * @param path The path to access.
    */
-  field(path: string): any {
+  field(path?: string): any {
     return peek(() => {
       const value = get(this[$values], path);
       // TFormInput could be 'unknown', which KeckFieldArray and KeckFieldObject won't accept.

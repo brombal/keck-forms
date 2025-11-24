@@ -122,6 +122,9 @@ class KeckField extends KeckFieldBase {
 }
 
 class KeckFieldArray extends KeckFieldBase {
+    field(_path) {
+        return this.form.field(`${this.path}.${_path}`);
+    }
     /**
      * Maps each field in the array to a new value by invoking the callback function.
      */
@@ -199,7 +202,7 @@ class KeckForm {
             const input = cloneDeep(unwrap(this[$values]));
             this._output = this.validator
                 ? this.validator(input, (field, error, action = 'push') => {
-                    if (!error) {
+                    if (!error && error !== '') {
                         delete errors[field];
                         return;
                     }

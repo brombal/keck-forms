@@ -4,19 +4,21 @@ import type { KeckFieldArray } from './KeckFieldArray';
 import type { KeckFieldObject } from './KeckFieldObject';
 import type { KeckForm } from './KeckForm';
 import { $errors, $touched, $values } from './KeckForm.internalFields';
-import type { ObjectOrUnknown, StringPath, ValueAtPath } from './types';
+import type { GetWithRoot, ObjectOrUnknown, StringPaths } from './types';
 import { get } from './util/get';
 
 export type KeckFieldForPath<
   TFormInput extends ObjectOrUnknown,
-  TStringPath extends StringPath<TFormInput>,
-> = TFormInput extends object
-  ? ValueAtPath<TFormInput, TStringPath> extends Array<infer _TFieldType>
-    ? KeckFieldArray<TFormInput, TStringPath>
-    : ValueAtPath<TFormInput, TStringPath> extends object
-      ? KeckFieldObject<TFormInput, TStringPath>
-      : KeckField<TFormInput, TStringPath>
-  : KeckField<TFormInput, TStringPath>;
+  TStringPath extends StringPaths<TFormInput>,
+> = TStringPath extends string
+  ? TFormInput extends object
+    ? GetWithRoot<TFormInput, TStringPath> extends Array<infer _TFieldType>
+      ? KeckFieldArray<TFormInput, TStringPath>
+      : GetWithRoot<TFormInput, TStringPath> extends object
+        ? KeckFieldObject<TFormInput, TStringPath>
+        : KeckField<TFormInput, TStringPath>
+    : never
+  : never;
 
 /**
  * Used to represent a KeckField with an explicit type (instead of inferring a type from a form input structure
@@ -26,18 +28,18 @@ export type TypedKeckField<TType> = Omit<KeckFieldBase<unknown, ''>, 'value'> & 
 
 export abstract class KeckFieldBase<
   TFormInput extends ObjectOrUnknown,
-  TStringPath extends StringPath<TFormInput>,
+  TStringPath extends string,
 > {
   constructor(
     public readonly form: KeckForm<TFormInput, unknown>,
     public readonly path: TStringPath,
   ) {}
 
-  get value(): TFormInput extends object ? ValueAtPath<TFormInput, TStringPath> : unknown {
+  get value(): TFormInput extends object ? GetWithRoot<TFormInput, TStringPath> : 5 {
     return get(this.form[$values], this.path) as any;
   }
 
-  set value(value: ValueAtPath<TFormInput, TStringPath>) {
+  set value(value: GetWithRoot<TFormInput, TStringPath>) {
     atomic(() => {
       if (this.path) {
         set(this.form[$values] as object, this.path, value);
@@ -145,5 +147,5 @@ export abstract class KeckFieldBase<
 
 export class KeckField<
   TFormInput extends ObjectOrUnknown,
-  TStringPath extends StringPath<TFormInput>,
+  TStringPath extends string,
 > extends KeckFieldBase<TFormInput, TStringPath> {}

@@ -5,3 +5,4 @@ export { KeckFieldObject } from './KeckFieldObject';
 export { useForm } from './useForm';
 export { useFormContext } from './useFormContext';
 export { zodValidator } from './zodValidator';
+export type { FormInputType, FormOutputType } from './types';

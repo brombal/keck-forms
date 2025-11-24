@@ -206,7 +206,7 @@ function useForm<TInput extends object, TOutput extends object>(options: {
 ### `field()`
 
 ```tsx
-function field<TPath extends StringPath<TInput>>(
+function field<TPath extends Paths<TInput>>(
   path: TPath,
 ): KeckFieldForPath<TInput, TPath>;
 ```

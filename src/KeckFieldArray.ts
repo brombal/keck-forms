@@ -1,12 +1,25 @@
 import { derive } from 'keck';
 import { KeckFieldBase, type KeckFieldForPath } from './KeckField';
 import { $errors } from './KeckForm.internalFields';
-import type { StringPath } from './types';
+import type { StringPaths } from './types';
 
 export class KeckFieldArray<
   TFormInput extends object,
-  TStringPath extends StringPath<TFormInput>,
+  TStringPath extends string,
 > extends KeckFieldBase<TFormInput, TStringPath> {
+  field<TPath extends string>(
+    _path: TPath,
+  ): `${TStringPath}.${TPath}` extends StringPaths<TFormInput>
+    ? KeckFieldForPath<
+        TFormInput,
+        `${TStringPath}.${TPath}` extends StringPaths<TFormInput>
+          ? `${TStringPath}.${TPath}`
+          : never
+      >
+    : never {
+    return this.form.field(`${this.path}.${_path}` as any) as any;
+  }
+
   /**
    * Maps each field in the array to a new value by invoking the callback function.
    */
@@ -14,7 +27,7 @@ export class KeckFieldArray<
     _callback: (
       field: KeckFieldForPath<
         TFormInput,
-        `${TStringPath}.${number}` extends StringPath<TFormInput>
+        `${TStringPath}.${number}` extends StringPaths<TFormInput>
           ? `${TStringPath}.${number}`
           : never
       >,
@@ -36,11 +49,11 @@ export class KeckFieldArray<
     );
   }
 
-  // push(value: ValueAtPath<TFormInput, `${TStringPath}.${number}`>): void {
+  // push(value: Get<TFormInput, `${TStringPath}.${number}`>): void {
   //   this.stateObserver.values[this.path].push(value);
   // }
   //
-  // pop(): ValueAtPath<TFormInput, `${TStringPath}.${number}`> | undefined {
+  // pop(): Get<TFormInput, `${TStringPath}.${number}`> | undefined {
   //   return this.stateObserver.values[this.path].pop();
   // }
   //
@@ -48,11 +61,11 @@ export class KeckFieldArray<
   //   this.stateObserver.values[this.path].splice(index, 1);
   // }
   //
-  // shift(): ValueAtPath<TFormInput, `${TStringPath}.${number}`> | undefined {
+  // shift(): Get<TFormInput, `${TStringPath}.${number}`> | undefined {
   //   return this.stateObserver.values[this.path].shift();
   // }
   //
-  // unshift(value: ValueAtPath<TFormInput, `${TStringPath}.${number}`>): void {
+  // unshift(value: Get<TFormInput, `${TStringPath}.${number}`>): void {
   //   this.stateObserver.values[this.path].unshift(value);
   // }
   //
@@ -61,7 +74,7 @@ export class KeckFieldArray<
   //   [array[indexA], array[indexB]] = [array[indexB], array[indexA]];
   // }
   //
-  // insert(index: number, value: ValueAtPath<TFormInput, `${TStringPath}.${number}`>): void {
+  // insert(index: number, value: Get<TFormInput, `${TStringPath}.${number}`>): void {
   //   this.stateObserver.values[this.path].splice(index, 0, value);
   // }
   //

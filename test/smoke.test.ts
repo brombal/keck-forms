@@ -29,11 +29,14 @@ describe('smoke', () => {
         initial: { name: 'John', age: 20 },
       });
 
+      // known fields
       form.field('name').value.toUpperCase();
       form.field('age').value.toFixed(2);
 
       // @ts-expect-error - unknown field
       form.field('unknown');
+
+      form.field<string>('unknown').value.toUpperCase();
 
       const unknownForm: KeckForm<unknown, unknown> = new KeckForm({
         initial: {} as unknown,
@@ -41,7 +44,10 @@ describe('smoke', () => {
       void unknownForm.field<string>('name').value.toUpperCase;
       void unknownForm.field<number>('age').value.toFixed;
 
-      void unknownForm.field('age').value;
+      // This is okay but it returns a KeckField with unknown value
+      const unknownField = unknownForm.field('age');
+      // @ts-expect-error - unknown field
+      unknownField.value.anything;
 
       // @ts-expect-error - unknown type
       unknownForm.field('age').value.toFixed?.(2);

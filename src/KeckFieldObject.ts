@@ -1,18 +1,20 @@
 import { derive } from 'keck';
 import { KeckFieldBase, type KeckFieldForPath } from './KeckField';
 import { $errors } from './KeckForm.internalFields';
-import type { StringPath } from './types';
+import type { StringPaths } from './types';
 
 export class KeckFieldObject<
   TFormInput extends object,
-  TStringPath extends StringPath<TFormInput>,
+  TStringPath extends string,
 > extends KeckFieldBase<TFormInput, TStringPath> {
   field<TPath extends string>(
     _path: TPath,
-  ): `${TStringPath}.${TPath}` extends StringPath<TFormInput>
+  ): `${TStringPath}.${TPath}` extends StringPaths<TFormInput>
     ? KeckFieldForPath<
         TFormInput,
-        `${TStringPath}.${TPath}` extends StringPath<TFormInput> ? `${TStringPath}.${TPath}` : never
+        `${TStringPath}.${TPath}` extends StringPaths<TFormInput>
+          ? `${TStringPath}.${TPath}`
+          : never
       >
     : never {
     return this.form.field(`${this.path}.${_path}` as any) as any;
