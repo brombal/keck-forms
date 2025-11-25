@@ -1,7 +1,6 @@
 import { useObserver } from 'keck/react';
 import type React from 'react';
-import { Fragment } from 'react';
-import { useRef } from 'react';
+import { Fragment, useMemo, useRef } from 'react';
 import {
   type FormValidatorFn,
   KeckForm,
@@ -23,9 +22,9 @@ export type UseFormReturn<
 export function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(
   options: {
     tryContext?: boolean;
-    initial: TFormInput;
+    initial: TFormInput | (() => TFormInput);
     validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
-    onSubmit?: OnSubmitFn<TFormOutput>;
+    onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
   },
   deps?: any[],
@@ -47,9 +46,16 @@ export function useForm<TFormInput extends object, TFormOutput extends object = 
     previousDepsRef.current = deps;
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dependency is managed manually
+  const initial = useMemo(() => {
+    return typeof options.initial === 'function'
+      ? (options.initial as () => TFormInput)()
+      : options.initial;
+  }, [typeof options.initial === 'function' ? undefined : options.initial, ...(deps || [])]);
+
   if (depsChanged || !formRef.current) {
     const form = new KeckForm<TFormInput, TFormOutput>({
-      initial: options.initial,
+      initial,
       validate: options.validate,
       onSubmit: options.onSubmit,
       onSubmitAttempt: options.onSubmitAttempt,
@@ -64,7 +70,7 @@ export function useForm<TFormInput extends object, TFormOutput extends object = 
   }
 
   const form = useObserver(formRef.current.form, [formRef.current.form]);
-  form[reassignOptions](options);
+  form[reassignOptions]({ ...options, initial });
 
   return {
     form,

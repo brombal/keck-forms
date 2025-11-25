@@ -20,8 +20,9 @@ export type FormValidatorFn<
   ) => void,
 ) => TFormOutput | null;
 
-export type OnSubmitFn<TFormOutput extends ObjectOrUnknown> = (
+export type OnSubmitFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (
   output: TFormOutput,
+  form: KeckForm<TFormInput, TFormOutput>,
 ) => Promise<void> | void;
 export type OnSubmitAttemptFn = () => Promise<void> | void;
 
@@ -31,19 +32,14 @@ export type OnSubmitAttemptFn = () => Promise<void> | void;
 export type KeckFormOptions<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown,
-> =
-  | {
-      initial: TFormInput;
-      validate: FormValidatorFn<TFormInput, TFormOutput>;
-      onSubmit?: OnSubmitFn<TFormOutput>;
-      onSubmitAttempt?: OnSubmitAttemptFn;
-    }
-  | {
-      initial: TFormInput;
-      validate?: never;
-      onSubmit?: OnSubmitFn<TFormOutput>;
-      onSubmitAttempt?: OnSubmitAttemptFn;
-    };
+> = {
+  initial: TFormInput;
+  // TODO do we also need "defaults"? The user may want to set initial values (values to which the form resets or believes an input is unmodified)
+  //  as well as values to start the form with, which may differ.
+  validate?: FormValidatorFn<TFormInput, TFormOutput>;
+  onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
+  onSubmitAttempt?: OnSubmitAttemptFn;
+};
 
 export const reassignOptions = Symbol('reassignOptions');
 
@@ -65,7 +61,7 @@ export class KeckForm<
   private _submitError: any | null = null;
 
   private validator?: FormValidatorFn<TFormInput, TFormOutput>;
-  private onSubmit: OnSubmitFn<TFormOutput> | undefined;
+  private onSubmit: OnSubmitFn<TFormInput, TFormOutput> | undefined;
   private onSubmitAttempt: OnSubmitAttemptFn | undefined;
 
   /**
@@ -94,6 +90,10 @@ export class KeckForm<
 
   get value(): TFormInput {
     return this.field('' as any).value as TFormInput;
+  }
+
+  setValues(values: TFormInput) {
+    this.field('' as any).value = values;
   }
 
   validate(): TFormOutput | null {
@@ -204,7 +204,7 @@ export class KeckForm<
       this._submitAttemptCount++;
       if (output && this.isValid) {
         this._submitCount++;
-        await this.onSubmit?.(output);
+        await this.onSubmit?.(output, observe(this));
       } else {
         await this.onSubmitAttempt?.();
       }

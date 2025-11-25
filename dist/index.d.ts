@@ -7,20 +7,15 @@ declare const $errors: unique symbol;
 declare const $touched: unique symbol;
 
 type FormValidatorFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (input: TFormInput, setError: (field: StringPaths<TFormInput>, error: string | null | undefined | false, action?: 'push' | 'unshift' | 'replace') => void) => TFormOutput | null;
-type OnSubmitFn<TFormOutput extends ObjectOrUnknown> = (output: TFormOutput) => Promise<void> | void;
+type OnSubmitFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (output: TFormOutput, form: KeckForm<TFormInput, TFormOutput>) => Promise<void> | void;
 type OnSubmitAttemptFn = () => Promise<void> | void;
 /**
  * The public interface for the KeckForm class constructor parameters.
  */
 type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = {
     initial: TFormInput;
-    validate: FormValidatorFn<TFormInput, TFormOutput>;
-    onSubmit?: OnSubmitFn<TFormOutput>;
-    onSubmitAttempt?: OnSubmitAttemptFn;
-} | {
-    initial: TFormInput;
-    validate?: never;
-    onSubmit?: OnSubmitFn<TFormOutput>;
+    validate?: FormValidatorFn<TFormInput, TFormOutput>;
+    onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
 };
 declare const reassignOptions: unique symbol;
@@ -48,6 +43,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>): void;
     get output(): TFormOutput | null;
     get value(): TFormInput;
+    setValues(values: TFormInput): void;
     validate(): TFormOutput | null;
     get isValid(): boolean;
     get dirty(): boolean;
@@ -96,9 +92,9 @@ type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends Objec
 };
 declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(options: {
     tryContext?: boolean;
-    initial: TFormInput;
+    initial: TFormInput | (() => TFormInput);
     validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
-    onSubmit?: OnSubmitFn<TFormOutput>;
+    onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
 }, deps?: any[]): UseFormReturn<TFormInput, TFormOutput>;
 

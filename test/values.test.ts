@@ -136,4 +136,34 @@ describe('values', () => {
     // @ts-expect-error wrong type
     void form.field('').value.nothing;
   });
+
+  test('setValues() correctly sets form values', () => {
+    const values = {
+      name: 'John',
+      age: 20,
+      friends: [
+        { name: 'Alice', age: 30 },
+        { name: 'Bob', age: 40 },
+      ],
+    };
+
+    const form = new KeckForm({
+      initial: values,
+      validate: () => ({}),
+    });
+
+    expect(form.value).toEqual(values);
+
+    const newValues = {
+      name: 'Jane',
+      age: 25,
+      friends: [
+        { name: 'Charlie', age: 35 },
+        { name: 'Diana', age: 45 },
+      ],
+    };
+    form.setValues(newValues);
+
+    expect(form.value).toEqual(newValues);
+  });
 });

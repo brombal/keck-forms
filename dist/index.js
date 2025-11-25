@@ -2,7 +2,7 @@ import { atomic, derive, unwrap, shallowCompare, registerObservableClass, transf
 import { get as get$1, set, isEqual, unset, isEmpty, cloneDeep } from 'lodash-es';
 import { jsx } from 'react/jsx-runtime';
 import { useObserver } from 'keck/react';
-import { createContext, useContext, Fragment, useRef } from 'react';
+import { createContext, useContext, Fragment, useRef, useMemo } from 'react';
 
 const $values = Symbol('$values');
 const $errors = Symbol('$errors');
@@ -196,6 +196,9 @@ class KeckForm {
     get value() {
         return this.field('').value;
     }
+    setValues(values) {
+        this.field('').value = values;
+    }
     validate() {
         return atomic(() => {
             const errors = {};
@@ -286,7 +289,7 @@ class KeckForm {
             this._submitAttemptCount++;
             if (output && this.isValid) {
                 this._submitCount++;
-                await this.onSubmit?.(output);
+                await this.onSubmit?.(output, observe(this));
             }
             else {
                 await this.onSubmitAttempt?.();
@@ -351,9 +354,15 @@ function useForm(options, deps) {
     if (depsChanged) {
         previousDepsRef.current = deps;
     }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: dependency is managed manually
+    const initial = useMemo(() => {
+        return typeof options.initial === 'function'
+            ? options.initial()
+            : options.initial;
+    }, [typeof options.initial === 'function' ? undefined : options.initial, ...(deps || [])]);
     if (depsChanged || !formRef.current) {
         const form = new KeckForm({
-            initial: options.initial,
+            initial,
             validate: options.validate,
             onSubmit: options.onSubmit,
             onSubmitAttempt: options.onSubmitAttempt,
@@ -367,7 +376,7 @@ function useForm(options, deps) {
         };
     }
     const form = useObserver(formRef.current.form, [formRef.current.form]);
-    form[reassignOptions](options);
+    form[reassignOptions]({ ...options, initial });
     return {
         form,
         FormProvider: formRef.current.FormProvider,

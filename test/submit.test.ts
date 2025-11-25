@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { unwrap } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 import { zodValidator } from 'keck-forms/zodValidator';
 import { z } from 'zod';
@@ -6,7 +7,7 @@ import { z } from 'zod';
 describe('submit', () => {
   test('onSubmit should be called if form is valid', () => {
     const initial = { name: 'John', age: 20 };
-    const onSubmit = jest.fn() as () => void;
+    const onSubmit = jest.fn();
 
     const form = new KeckForm({
       initial,
@@ -16,12 +17,13 @@ describe('submit', () => {
           age: z.number().min(18),
         }),
       ),
-      onSubmit,
+      onSubmit: onSubmit as () => void,
     });
 
     form.handleSubmit();
 
-    expect(onSubmit).toHaveBeenCalledWith(initial);
+    expect(onSubmit.mock.calls[0][0]).toEqual(initial);
+    expect(unwrap(onSubmit.mock.calls[0][1])).toBe(form);
     expect(form.submitCount).toBe(1);
     expect(form.submitAttemptCount).toBe(1);
   });

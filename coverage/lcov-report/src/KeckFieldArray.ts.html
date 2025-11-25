@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">71.42% </span>
+                <span class="strong">62.5% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/7</span>
+                <span class='fraction'>5/8</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">57.14% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/6</span>
+                <span class='fraction'>4/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">57.14% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>4/6</span>
+                <span class='fraction'>4/7</span>
             </div>
         
             
@@ -134,13 +134,39 @@
 <a name='L69'></a><a href='#L69'>69</a>
 <a name='L70'></a><a href='#L70'>70</a>
 <a name='L71'></a><a href='#L71'>71</a>
-<a name='L72'></a><a href='#L72'>72</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -207,13 +233,26 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { derive } from 'keck';
 import { KeckFieldBase, type KeckFieldForPath } from './KeckField';
-import { $errors } from './KeckForm.fields';
-import type { StringPath } from './types';
+import { $errors } from './KeckForm.internalFields';
+import type { StringPaths } from './types';
 &nbsp;
 export class KeckFieldArray&lt;
   TFormInput extends object,
-  TStringPath extends StringPath&lt;TFormInput&gt;,
+  TStringPath extends string,
 &gt; extends KeckFieldBase&lt;TFormInput, TStringPath&gt; {
+<span class="fstat-no" title="function not covered" >  field&lt;</span>TPath extends string&gt;(
+    _path: TPath,
+  ): `${TStringPath}.${TPath}` extends StringPaths&lt;TFormInput&gt;
+    ? KeckFieldForPath&lt;
+        TFormInput,
+        `${TStringPath}.${TPath}` extends StringPaths&lt;TFormInput&gt;
+          ? `${TStringPath}.${TPath}`
+          : never
+      &gt;
+    : never {
+<span class="cstat-no" title="statement not covered" >    return this.form.field(`${this.path}.${_path}` as any) as any;</span>
+  }
+&nbsp;
   /**
    * Maps each field in the array to a new value by invoking the callback function.
    */
@@ -221,7 +260,7 @@ export class KeckFieldArray&lt;
     _callback: (
       field: KeckFieldForPath&lt;
         TFormInput,
-        `${TStringPath}.${number}` extends StringPath&lt;TFormInput&gt;
+        `${TStringPath}.${number}` extends StringPaths&lt;TFormInput&gt;
           ? `${TStringPath}.${number}`
           : never
       &gt;,
@@ -243,11 +282,11 @@ export class KeckFieldArray&lt;
     );
   }
 &nbsp;
-  // push(value: ValueAtPath&lt;TFormInput, `${TStringPath}.${number}`&gt;): void {
+  // push(value: Get&lt;TFormInput, `${TStringPath}.${number}`&gt;): void {
   //   this.stateObserver.values[this.path].push(value);
   // }
   //
-  // pop(): ValueAtPath&lt;TFormInput, `${TStringPath}.${number}`&gt; | undefined {
+  // pop(): Get&lt;TFormInput, `${TStringPath}.${number}`&gt; | undefined {
   //   return this.stateObserver.values[this.path].pop();
   // }
   //
@@ -255,11 +294,11 @@ export class KeckFieldArray&lt;
   //   this.stateObserver.values[this.path].splice(index, 1);
   // }
   //
-  // shift(): ValueAtPath&lt;TFormInput, `${TStringPath}.${number}`&gt; | undefined {
+  // shift(): Get&lt;TFormInput, `${TStringPath}.${number}`&gt; | undefined {
   //   return this.stateObserver.values[this.path].shift();
   // }
   //
-  // unshift(value: ValueAtPath&lt;TFormInput, `${TStringPath}.${number}`&gt;): void {
+  // unshift(value: Get&lt;TFormInput, `${TStringPath}.${number}`&gt;): void {
   //   this.stateObserver.values[this.path].unshift(value);
   // }
   //
@@ -268,7 +307,7 @@ export class KeckFieldArray&lt;
   //   [array[indexA], array[indexB]] = [array[indexB], array[indexA]];
   // }
   //
-  // insert(index: number, value: ValueAtPath&lt;TFormInput, `${TStringPath}.${number}`&gt;): void {
+  // insert(index: number, value: Get&lt;TFormInput, `${TStringPath}.${number}`&gt;): void {
   //   this.stateObserver.values[this.path].splice(index, 0, value);
   // }
   //
@@ -283,7 +322,7 @@ export class KeckFieldArray&lt;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-20T13:58:26.094Z
+                at 2026-02-27T00:30:01.865Z
             </div>
         <script src="../prettify.js"></script>
         <script>
