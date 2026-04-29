@@ -23,8 +23,8 @@ export class KeckFieldObject<
   get allErrors(): Array<{ path: string; errors: string[] }> {
     return derive(
       () => {
-        const entries = Object.entries(this.form[$errors]).filter(([key]) =>
-          key.startsWith(this.path),
+        const entries = Object.entries(this.form[$errors]).filter(
+          ([key]) => !this.path || key === this.path || key.startsWith(`${this.path}.`),
         );
         return entries.map(([path, errors]) => ({ path, errors }));
       },

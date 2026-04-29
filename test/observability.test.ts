@@ -1,6 +1,8 @@
 import { focus, observe } from 'keck';
 import { KeckForm, reassignOptions } from 'keck-forms/KeckForm';
+import { zodValidator } from 'keck-forms/zodValidator';
 import { vi } from 'vitest';
+import { z } from 'zod';
 
 describe('observability', () => {
   test('field values should be observable', () => {
@@ -63,5 +65,69 @@ describe('observability', () => {
     formObserver.field('name').value = 'Jane';
     expect(mockValidateFn).toHaveBeenCalledTimes(0);
     expect(mockValidateFn2).toHaveBeenCalledTimes(1);
+  });
+
+  test('KeckField allErrors observer is suppressed when errors are unchanged', () => {
+    // The JSON.stringify comparator on allErrors prevents observers from firing when
+    // re-validation changes other fields but leaves this field's errors the same.
+    const form = observe(
+      new KeckForm({
+        initial: { name: '', age: 20 },
+        validate: zodValidator(z.object({ name: z.string().min(1), age: z.number().min(18) })),
+      }),
+    );
+
+    const mockFn = vi.fn();
+    const formObserver = observe(form, mockFn);
+    focus(formObserver);
+    void formObserver.field('name').allErrors;
+
+    // Changing age triggers re-validation but name.allErrors is unchanged — comparator returns true.
+    form.field('age').value = 17;
+    expect(mockFn).toHaveBeenCalledTimes(0);
+
+    // Making name valid changes name.allErrors — comparator returns false, observer fires.
+    form.field('name').value = 'Alice';
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
+  test('KeckFieldObject allErrors observer is suppressed when errors are unchanged', () => {
+    const form = observe(
+      new KeckForm({
+        initial: { name: '', address: { street: '', city: '' } },
+        validate: zodValidator(
+          z.object({
+            name: z.string().min(1),
+            address: z.object({ street: z.string().min(1), city: z.string().min(1) }),
+          }),
+        ),
+      }),
+    );
+
+    const mockFn = vi.fn();
+    const formObserver = observe(form, mockFn);
+    focus(formObserver);
+    void formObserver.field('address').allErrors;
+
+    // Fixing name (unrelated) triggers re-validation but address.allErrors is unchanged.
+    form.field('name').value = 'Alice';
+    expect(mockFn).toHaveBeenCalledTimes(0);
+
+    // Fixing address.street changes address.allErrors — observer fires.
+    form.field('address.street').value = '123 Main St';
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
+  test('reassignOptions updates initial value', () => {
+    const form = new KeckForm({
+      initial: { name: 'John' },
+      validate: () => ({}),
+    });
+
+    form.field('name').value = 'Jane';
+    expect(form.field('name').dirty).toBe(true);
+
+    form[reassignOptions]({ initial: { name: 'Jane' } });
+    expect(form.field('name').dirty).toBe(false); // 'Jane' now matches the new initial
   });
 });

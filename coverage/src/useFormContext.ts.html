@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/KeckFieldObject.ts</title>
+    <title>Code coverage report for src/useFormContext.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> KeckFieldObject.ts</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> useFormContext.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -32,21 +32,21 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -97,7 +97,13 @@
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
 <a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -113,57 +119,54 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">14x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">32x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">34x</span>
-<span class="cline-any cline-yes">35x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">34x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { derive } from 'keck';
-import { KeckFieldBase, type KeckFieldForPath } from './KeckField';
-import { $errors } from './KeckForm.internalFields';
-import type { StringPaths } from './types';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useObserver } from 'keck/react';
+import { createContext, useContext } from 'react';
+import type { KeckForm } from './KeckForm';
+import type { ObjectOrUnknown } from './types';
 &nbsp;
-export class KeckFieldObject&lt;
-  TFormInput extends object,
-  TStringPath extends string,
-&gt; extends KeckFieldBase&lt;TFormInput, TStringPath&gt; {
-  field&lt;TPath extends string&gt;(
-    _path: TPath,
-  ): `${TStringPath}.${TPath}` extends StringPaths&lt;TFormInput&gt;
-    ? KeckFieldForPath&lt;
-        TFormInput,
-        `${TStringPath}.${TPath}` extends StringPaths&lt;TFormInput&gt;
-          ? `${TStringPath}.${TPath}`
-          : never
-      &gt;
-    : never {
-    return this.form.field(`${this.path}.${_path}` as any) as any;
+export const keckFormContext = createContext&lt;KeckForm&lt;unknown, unknown&gt; | null&gt;(null);
+&nbsp;
+export function useFormContext&lt;
+  TFormInput extends ObjectOrUnknown = unknown,
+  TFormOutput extends ObjectOrUnknown = unknown,
+&gt;(dontThrowOnMissingProvider: true): KeckForm&lt;TFormInput, TFormOutput&gt; | null;
+&nbsp;
+export function useFormContext&lt;
+  TFormInput extends ObjectOrUnknown = unknown,
+  TFormOutput extends ObjectOrUnknown = unknown,
+&gt;(dontThrowOnMissingProvider?: false): KeckForm&lt;TFormInput, TFormOutput&gt;;
+&nbsp;
+export function useFormContext&lt;
+  TFormInput extends ObjectOrUnknown = unknown,
+  TFormOutput extends ObjectOrUnknown = unknown,
+&gt;(dontThrowOnMissingProvider = false): KeckForm&lt;TFormInput, TFormOutput&gt; | null {
+  const form = useContext(keckFormContext) as KeckForm&lt;TFormInput, TFormOutput&gt; | undefined;
+  if (!form) {
+    if (!dontThrowOnMissingProvider)
+      throw new Error('useFormContext must be used within a FormProvider.');
+    return null;
   }
 &nbsp;
-  get allErrors(): Array&lt;{ path: string; errors: string[] }&gt; {
-    return derive(
-      () =&gt; {
-        const entries = Object.entries(this.form[$errors]).filter(
-          ([key]) =&gt; !this.path || key === this.path || key.startsWith(`${this.path}.`),
-        );
-        return entries.map(([path, errors]) =&gt; ({ path, errors }));
-      },
-      (a, b) =&gt; JSON.stringify(a) === JSON.stringify(b),
-    );
-  }
+  // NOTE: It is an invariant error (i.e. a developer mistake) to change the value of `throwOnMissingProvider` or
+  // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
+  // are called.
+&nbsp;
+  // biome-ignore lint/correctness/useHookAtTopLevel: hook is called unconditionally at runtime — the early return only fires on invariant violations (wrong provider usage), which are developer mistakes that are caught at startup
+  return useObserver(form);
 }
 &nbsp;</pre></td></tr></table></pre>
 

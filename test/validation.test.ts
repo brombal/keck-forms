@@ -156,6 +156,78 @@ describe('validation', () => {
     expect(form.isValid).toBe(false);
   });
 
+  test('setError with unshift action prepends to the error list', () => {
+    const form = new KeckForm({
+      initial: { age: 10 },
+      validate: (input, setError) => {
+        setError('age', 'first error');
+        setError('age', 'prepended error', 'unshift');
+        return input;
+      },
+    });
+    expect(form.field('age').errors).toEqual(['prepended error', 'first error']);
+  });
+
+  test('setError with replace action discards earlier errors for that field', () => {
+    const form = new KeckForm({
+      initial: { age: 20 },
+      validate: (input, setError) => {
+        setError('age', 'first error');
+        setError('age', 'final error', 'replace');
+        return input;
+      },
+    });
+    expect(form.field('age').errors).toEqual(['final error']);
+  });
+
+  test('setError with null clears an error previously set in the same run', () => {
+    const form = new KeckForm({
+      initial: { age: 10 },
+      validate: (input, setError) => {
+        if (input.age < 18) setError('age', 'must be 18+');
+        if (input.age >= 18) setError('age', null); // explicitly clear
+        return input;
+      },
+    });
+
+    expect(form.field('age').errors).toEqual(['must be 18+']);
+
+    form.field('age').value = 20;
+    expect(form.field('age').errors).toEqual([]);
+  });
+
+  test('allErrors on object field does not include errors from fields with a matching path prefix', () => {
+    const form = new KeckForm({
+      initial: { profile: { bio: '' }, profileUrl: '' },
+      validate: (input, setError) => {
+        setError('profile.bio', 'Bio is required');
+        setError('profileUrl', 'URL is required');
+        return input;
+      },
+    });
+
+    // 'profile' allErrors should only contain 'profile.bio', not 'profileUrl'
+    expect(form.field('profile').allErrors).toEqual([
+      { path: 'profile.bio', errors: ['Bio is required'] },
+    ]);
+  });
+
+  test('allErrors on array field does not include errors from fields with a matching path prefix', () => {
+    const form = new KeckForm({
+      initial: { items: [{ name: '' }], itemsCount: 0 },
+      validate: (input, setError) => {
+        setError('items.0.name', 'Name is required');
+        setError('itemsCount', 'Count is required');
+        return input;
+      },
+    });
+
+    // 'items' allErrors should only contain 'items.0.name', not 'itemsCount'
+    expect(form.field('items').allErrors).toEqual([
+      { path: 'items.0.name', errors: ['Name is required'] },
+    ]);
+  });
+
   test('Array mutations trigger validation', () => {
     const form = new KeckForm({
       initial: { items: [] as string[] },

@@ -94,8 +94,8 @@ export abstract class KeckFieldBase<
           path.pop();
           const pathValue = get(this.form[$touched], path);
           if (
-            isEmpty(pathValue) ||
-            (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p)))
+            pathValue !== true &&
+            (isEmpty(pathValue) || (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p))))
           ) {
             unset(this.form[$touched], path);
           } else {
@@ -103,7 +103,7 @@ export abstract class KeckFieldBase<
           }
         }
 
-        if (isEmpty(this.form[$touched])) {
+        if (this.form[$touched] !== true && isEmpty(this.form[$touched])) {
           this.form[$touched] = false;
         }
       } else {
@@ -120,7 +120,7 @@ export abstract class KeckFieldBase<
     return derive(
       () =>
         this.form[$errors][this.path]
-          ? [{ path: this.path, errors: this.form[$errors][this.path] || [] }]
+          ? [{ path: this.path, errors: this.form[$errors][this.path] }]
           : [],
       (a, b) => JSON.stringify(a) === JSON.stringify(b),
     );

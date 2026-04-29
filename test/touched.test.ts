@@ -180,6 +180,52 @@ describe('touched', () => {
     expect(form.touched).toBe(false);
   });
 
+  test('Un-touching one field does not clear bulk-touched parent', () => {
+    const form = new KeckForm({
+      initial: {
+        name: 'John',
+        age: 20,
+        friends: [
+          { name: 'Alice', age: 30 },
+          { name: 'Bob', age: 25 },
+        ],
+      },
+      validate: () => ({}),
+    });
+
+    // Bulk-touch the friends array
+    form.field('friends').touched = true;
+
+    // Untouching a specific nested field should NOT clear the friends bulk touch
+    form.field('friends.0.name').touched = false;
+
+    // friends.0.age should still be touched (covered by friends: true sentinel)
+    expect(form.field('friends.0.age').touched).toBe(true);
+    // friends.1.name should still be touched
+    expect(form.field('friends.1.name').touched).toBe(true);
+    // friends itself should still be touched
+    expect(form.field('friends').touched).toBe(true);
+    // form should still be touched
+    expect(form.touched).toBe(true);
+  });
+
+  test('Un-touching one field does not clear form-level bulk touch', () => {
+    const form = new KeckForm({
+      initial: { name: 'John', age: 20 },
+      validate: () => ({}),
+    });
+
+    // Bulk-touch the entire form
+    form.touched = true;
+
+    // Untouching a specific field should not clear the form-level bulk touch
+    form.field('name').touched = false;
+
+    // age should still be touched via form-level bulk touch
+    expect(form.field('age').touched).toBe(true);
+    expect(form.touched).toBe(true);
+  });
+
   test('Observer callback is only triggered when touched state changes', () => {
     const initial = {
       name: 'John',
