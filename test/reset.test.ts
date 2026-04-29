@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 
 describe('reset', () => {
@@ -134,5 +136,31 @@ describe('reset', () => {
     // expect name to remain changed
     expect(form.field('name').value).toBe('Changed');
     expect(form.touched).toBe(true);
+  });
+
+  test('Individual Set fields reset correctly when form is observed', () => {
+    const observer = observe(
+      new KeckForm({
+        initial: {
+          permissions: new Set(['role-default']),
+        },
+      }),
+      jest.fn(),
+    );
+    focus(observer);
+
+    const firstSet = observer.field('permissions').value;
+    firstSet.add('user-override');
+    expect([...observer.field('permissions').value]).toEqual(['role-default', 'user-override']);
+
+    observer.field('permissions').reset();
+
+    const resetSet = observer.field('permissions').value;
+    // expect(resetSet).not.toBe(firstSet);
+    // expect(unwrap(resetSet)).not.toBe(unwrap(firstSet));
+    expect([...resetSet]).toEqual(['role-default']);
+
+    resetSet.add('new-user-override');
+    expect([...observer.field('permissions').value]).toEqual(['role-default', 'new-user-override']);
   });
 });
