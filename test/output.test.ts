@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import { observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
+import { vi } from 'vitest';
 
 describe('output', () => {
   test('Form output matches validation result', () => {
@@ -39,23 +39,23 @@ describe('output', () => {
       }),
     );
 
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     const formObserver = observe(form, mockFn);
 
     // observe name field only
     void formObserver.output?.name;
 
     form.field('name').value = 'Jane';
-    expect(mockFn).toHaveBeenCalledTimes(1);
+    /**
+     * Called twice: once when $values.name changes (setter's atomic), and once when _output
+     * changes (the deep observer fires after the atomic and runs validate(), updating _output
+     * in a separate atomic). Both fire on the unfocused formObserver's root observation.
+     */
+    expect(mockFn).toHaveBeenCalledTimes(2);
     mockFn.mockReset();
 
     form.field('age').value = '21';
-    /**
-     * This should really be 0, but since the result of the validation function completely replaces
-     * the form's output object, and the current implementation of the underlying observability
-     * library (keck) does not support property-specific observations when an ancestor object is
-     * replaced, the callback is called whenever the output changes.
-     */
-    expect(mockFn).toHaveBeenCalledTimes(1);
+    // Same double-trigger behavior as above.
+    expect(mockFn).toHaveBeenCalledTimes(2);
   });
 });

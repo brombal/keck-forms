@@ -21,13 +21,11 @@ export type ObjectOrUnknown = object | unknown;
 /**
  * Takes a UseFormReturn and extracts the TFormInput type.
  */
-export type FormInputType<T> = T extends UseFormReturn<infer TFormInput, infer _TFormOutput>
-  ? TFormInput
-  : never;
+export type FormInputType<T> =
+  T extends UseFormReturn<infer TFormInput, infer _TFormOutput> ? TFormInput : never;
 
 /**
  * Takes a UseFormReturn and extracts the TFormOutput type.
  */
-export type FormOutputType<T> = T extends UseFormReturn<infer _TFormInput, infer TFormOutput>
-  ? TFormOutput
-  : never;
+export type FormOutputType<T> =
+  T extends UseFormReturn<infer _TFormInput, infer TFormOutput> ? TFormOutput : never;

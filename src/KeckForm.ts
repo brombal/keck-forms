@@ -1,4 +1,13 @@
-import { atomic, observe, peek, registerObservableClass, transformInPlace, unwrap } from 'keck';
+import {
+  atomic,
+  deep,
+  focus,
+  observe,
+  peek,
+  registerObservableClass,
+  transformInPlace,
+  unwrap,
+} from 'keck';
 import { cloneDeep } from 'lodash-es';
 import type { IsNever, IsUnknown } from 'type-fest';
 import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckField';
@@ -74,7 +83,22 @@ export class KeckForm<
     this.validator = options.validate;
     this.onSubmit = options.onSubmit;
     this.onSubmitAttempt = options.onSubmitAttempt;
+    // Set up a focused deep observation on $values so that any mutation to it
+    // (including Set.add, Array.push, etc.) triggers re-validation. Focus mode is
+    // required for deep() to be scoped — without it the observer fires on all
+    // changes, which would cause an infinite loop when validate() writes _output.
+    // The callback calls validate() through the proxy so $errors writes propagate
+    // as observable changes.
+    let $self!: any;
+    $self = observe(this as any, () => {
+      $self.validate();
+    });
+    focus($self);
+    deep($self[$values]);
+    focus($self, false);
     this.validate();
+    // biome-ignore lint/correctness/noConstructorReturn: returns observable proxy so KeckForm is always reactive
+    return $self as any;
   }
 
   [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>) {
@@ -147,11 +171,7 @@ export class KeckForm<
    * - **touched** - Reset the touched state to null.
    * - **submit** - Reset the submit count and submit attempt count to 0.
    */
-  reset(resetOptions?: {
-    values?: boolean;
-    touched?: boolean;
-    submit?: boolean;
-  }) {
+  reset(resetOptions?: { values?: boolean; touched?: boolean; submit?: boolean }) {
     atomic(() => {
       if (!resetOptions || resetOptions.values === true)
         this[$values] = cloneDeep(unwrap(this.initial));
@@ -160,7 +180,6 @@ export class KeckForm<
         this._submitCount = 0;
         this._submitAttemptCount = 0;
       }
-      this.validate();
     });
   }
 

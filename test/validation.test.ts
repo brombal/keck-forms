@@ -1,7 +1,7 @@
-import { jest } from '@jest/globals';
 import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
 import { zodValidator } from 'keck-forms/zodValidator';
+import { vi } from 'vitest';
 import { z } from 'zod';
 
 describe('validation', () => {
@@ -15,7 +15,7 @@ describe('validation', () => {
     const form = new KeckForm({
       initial,
       validate: (input, setError) => {
-        // @ts-ignore expected to fail on unknown fields
+        // @ts-expect-error expected to fail on unknown fields
         input.asdf;
         if (input.age < 18) {
           setError('age', 'You must be 18 or older');
@@ -63,7 +63,7 @@ describe('validation', () => {
       }),
     );
 
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     const formObserver = observe(form, mockFn);
     focus(formObserver);
 
@@ -132,5 +132,45 @@ describe('validation', () => {
       { path: 'friends.1.name', errors: ['Friend name is required'] },
       { path: 'friends.1.age', errors: ['Friend must be 18 or older'] },
     ]);
+  });
+
+  test('Set mutations trigger validation', () => {
+    const form = new KeckForm({
+      initial: { tags: new Set<string>() },
+      validate: (input, setError) => {
+        if (input.tags.size === 0) setError('tags', 'At least one tag required');
+        return input;
+      },
+    });
+
+    expect(form.isValid).toBe(false);
+
+    form.field('tags').value.add('typescript');
+    expect(form.isValid).toBe(true);
+
+    form.field('tags').value.clear();
+    expect(form.isValid).toBe(false);
+
+    form.field('tags').value.add('javascript');
+    form.field('tags').value.delete('javascript');
+    expect(form.isValid).toBe(false);
+  });
+
+  test('Array mutations trigger validation', () => {
+    const form = new KeckForm({
+      initial: { items: [] as string[] },
+      validate: (input, setError) => {
+        if (input.items.length === 0) setError('items', 'At least one item required');
+        return input;
+      },
+    });
+
+    expect(form.isValid).toBe(false);
+
+    form.field('items').value.push('hello');
+    expect(form.isValid).toBe(true);
+
+    form.field('items').value.splice(0, 1);
+    expect(form.isValid).toBe(false);
   });
 });

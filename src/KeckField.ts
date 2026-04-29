@@ -46,7 +46,6 @@ export abstract class KeckFieldBase<
       } else {
         this.form[$values] = value as any;
       }
-      this.form.validate();
     });
   }
 
@@ -140,7 +139,6 @@ export abstract class KeckFieldBase<
         this.form[$values] = value as any;
       }
       this.touched = false;
-      this.form.validate();
     });
   }
 }

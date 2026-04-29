@@ -4,13 +4,14 @@
     "module": "esnext",
     "jsx": "react-jsx",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "strict": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "bundler",
     "lib": ["esnext", "dom"],
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
     "paths": {
       "keck-forms/*": ["./src/*"]
     }

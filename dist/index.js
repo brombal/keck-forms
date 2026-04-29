@@ -1,8 +1,8 @@
-import { atomic, derive, unwrap, shallowCompare, registerObservableClass, transformInPlace, peek, observe } from 'keck';
+import { atomic, derive, unwrap, shallowCompare, registerObservableClass, observe, focus, deep, transformInPlace, peek } from 'keck';
 import { get as get$1, set, isEqual, unset, isEmpty, cloneDeep } from 'lodash-es';
 import { jsx } from 'react/jsx-runtime';
 import { useObserver } from 'keck/react';
-import { createContext, useContext, Fragment, useRef, useMemo } from 'react';
+import { createContext, useContext, useRef, Fragment, useMemo } from 'react';
 
 const $values = Symbol('$values');
 const $errors = Symbol('$errors');
@@ -30,7 +30,6 @@ class KeckFieldBase {
             else {
                 this.form[$values] = value;
             }
-            this.form.validate();
         });
     }
     get dirty() {
@@ -114,7 +113,6 @@ class KeckFieldBase {
                 this.form[$values] = value;
             }
             this.touched = false;
-            this.form.validate();
         });
     }
 }
@@ -178,7 +176,22 @@ class KeckForm {
         this.validator = options.validate;
         this.onSubmit = options.onSubmit;
         this.onSubmitAttempt = options.onSubmitAttempt;
+        // Set up a focused deep observation on $values so that any mutation to it
+        // (including Set.add, Array.push, etc.) triggers re-validation. Focus mode is
+        // required for deep() to be scoped — without it the observer fires on all
+        // changes, which would cause an infinite loop when validate() writes _output.
+        // The callback calls validate() through the proxy so $errors writes propagate
+        // as observable changes.
+        let $self;
+        $self = observe(this, () => {
+            $self.validate();
+        });
+        focus($self);
+        deep($self[$values]);
+        focus($self, false);
         this.validate();
+        // biome-ignore lint/correctness/noConstructorReturn: returns observable proxy so KeckForm is always reactive
+        return $self;
     }
     [reassignOptions](options) {
         if (options.onSubmit)
@@ -256,7 +269,6 @@ class KeckForm {
                 this._submitCount = 0;
                 this._submitAttemptCount = 0;
             }
-            this.validate();
         });
     }
     /**
@@ -339,6 +351,7 @@ function useFormContext(dontThrowOnMissingProvider = false) {
     // NOTE: It is an invariant error (i.e. a developer mistake) to change the value of `throwOnMissingProvider` or
     // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
     // are called.
+    // biome-ignore lint/correctness/useHookAtTopLevel: hook is called unconditionally at runtime — the early return only fires on invariant violations (wrong provider usage), which are developer mistakes that are caught at startup
     return useObserver(form);
 }
 

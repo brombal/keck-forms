@@ -172,4 +172,5 @@ declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TF
 
 declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => TSchema extends z.Schema ? FormValidatorFn<any, z.output<TSchema>> : never;
 
-export { type FormInputType, type FormOutputType, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, type KeckFormOptions, useForm, useFormContext, zodValidator };
+export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
+export type { FormInputType, FormOutputType, KeckFormOptions };

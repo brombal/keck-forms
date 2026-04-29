@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
+import { vi } from 'vitest';
 
 describe('touched', () => {
   test('Touching a form field should work', () => {
@@ -194,7 +194,7 @@ describe('touched', () => {
       }),
     );
 
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     const formObserver = observe(form, mockFn);
     focus(formObserver);
 

@@ -30,5 +30,6 @@ export function useFormContext<
   // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
   // are called.
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: hook is called unconditionally at runtime — the early return only fires on invariant violations (wrong provider usage), which are developer mistakes that are caught at startup
   return useObserver(form);
 }

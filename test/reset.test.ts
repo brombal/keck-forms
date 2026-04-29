@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
+import { vi } from 'vitest';
 
 describe('reset', () => {
   test('Entire form is reset', () => {
@@ -145,7 +145,7 @@ describe('reset', () => {
           permissions: new Set(['role-default']),
         },
       }),
-      jest.fn(),
+      vi.fn(),
     );
     focus(observer);
 

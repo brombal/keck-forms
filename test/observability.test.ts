@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import { focus, observe } from 'keck';
 import { KeckForm, reassignOptions } from 'keck-forms/KeckForm';
+import { vi } from 'vitest';
 
 describe('observability', () => {
   test('field values should be observable', () => {
@@ -11,7 +11,7 @@ describe('observability', () => {
       }),
     );
 
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
 
     // Use the .observe method to observe the form with a callback.
     const formObserver = observe(form, mockFn);
@@ -31,7 +31,7 @@ describe('observability', () => {
   });
 
   test('Correct validate function should be called when replaced', () => {
-    const mockValidateFn = jest.fn();
+    const mockValidateFn = vi.fn();
 
     const form = observe(
       new KeckForm({
@@ -40,7 +40,7 @@ describe('observability', () => {
       }),
     );
 
-    const mockObserveFn = jest.fn();
+    const mockObserveFn = vi.fn();
 
     // Use the .observe method to observe the form with a callback.
     const formObserver = observe(form, mockObserveFn);
@@ -51,15 +51,15 @@ describe('observability', () => {
     formObserver.field('name').value;
 
     // A change to an unobserved field value will not trigger the callback.
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     formObserver.field('age').value = 10;
     expect(mockValidateFn).toHaveBeenCalledTimes(1);
 
-    const mockValidateFn2 = jest.fn();
+    const mockValidateFn2 = vi.fn();
     form[reassignOptions]({ validate: mockValidateFn2 });
 
     // A change to an observed field value will trigger the callback.
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     formObserver.field('name').value = 'Jane';
     expect(mockValidateFn).toHaveBeenCalledTimes(0);
     expect(mockValidateFn2).toHaveBeenCalledTimes(1);

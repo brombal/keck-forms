@@ -10,7 +10,7 @@ describe('smoke', () => {
       initial: { name: 'John' },
       onSubmit: (output) => {
         output.name;
-        // @ts-ignore expected to fail on unknown fields
+        // @ts-expect-error expected to fail on unknown fields
         output.asdf;
       },
     });

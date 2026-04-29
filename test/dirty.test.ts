@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
+import { vi } from 'vitest';
 
 describe('dirty', () => {
   test("Form values should be dirty when they don't match initial", () => {
@@ -49,7 +49,7 @@ describe('dirty', () => {
       }),
     );
 
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     const formObserver = observe(form, mockFn);
     focus(formObserver);
     expect(mockFn).toHaveBeenCalledTimes(0);
