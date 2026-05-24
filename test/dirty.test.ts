@@ -50,12 +50,13 @@ describe('dirty', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit } = focus(formObserver);
     expect(mockFn).toHaveBeenCalledTimes(0);
 
     // Observe dirty value
     void formObserver.field('name').dirty;
+    commit();
     expect(mockFn).toHaveBeenCalledTimes(0);
 
     // Changing value should trigger callback

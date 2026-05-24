@@ -138,6 +138,20 @@ describe('reset', () => {
     expect(form.touched).toBe(true);
   });
 
+  test('Root field reset restores all values and clears touched', () => {
+    const initial = { name: 'John', age: 20 };
+    const form = new KeckForm({ initial, validate: () => ({}) });
+
+    form.field('name').value = 'Jane';
+    form.field('age').value = 99;
+    form.touched = true;
+
+    form.field('').reset();
+
+    expect(form.value).toEqual(initial);
+    expect(form.touched).toBe(false);
+  });
+
   test('Individual Set fields reset correctly when form is observed', () => {
     const observer = observe(
       new KeckForm({
@@ -145,11 +159,12 @@ describe('reset', () => {
           permissions: new Set(['role-default']),
         },
       }),
-      vi.fn(),
+      { focusable: true, onChange: vi.fn() },
     );
-    focus(observer);
+    const { commit } = focus(observer);
 
     const firstSet = observer.field('permissions').value;
+    commit();
     firstSet.add('user-override');
     expect([...observer.field('permissions').value]).toEqual(['role-default', 'user-override']);
 

@@ -41,6 +41,7 @@ export type OnSubmitAttemptFn = () => Promise<void> | void;
 export type KeckFormOptions<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown,
+  TMeta extends object = Record<string, unknown>,
 > = {
   initial: TFormInput;
   // TODO do we also need "defaults"? The user may want to set initial values (values to which the form resets or believes an input is unmodified)
@@ -48,6 +49,7 @@ export type KeckFormOptions<
   validate?: FormValidatorFn<TFormInput, TFormOutput>;
   onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
   onSubmitAttempt?: OnSubmitAttemptFn;
+  meta?: TMeta;
 };
 
 export const reassignOptions = Symbol('reassignOptions');
@@ -58,8 +60,10 @@ export const reassignOptions = Symbol('reassignOptions');
 export class KeckForm<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown = TFormInput,
+  TMeta extends object = Record<string, unknown>,
 > {
   initial: TFormInput;
+  meta: TMeta;
   [$values]: TFormInput;
   [$touched]: any = null;
   [$errors]: Record<string, string[]> = {};
@@ -77,8 +81,9 @@ export class KeckForm<
    * Creates a KeckForm by providing an initial state and a validation function.
    * @param options The initial state and validation function.
    */
-  constructor(options: KeckFormOptions<TFormInput, TFormOutput>) {
+  constructor(options: KeckFormOptions<TFormInput, TFormOutput, TMeta>) {
     this.initial = options.initial;
+    this.meta = (options.meta ?? {}) as TMeta;
     this[$values] = cloneDeep(options.initial);
     this.validator = options.validate;
     this.onSubmit = options.onSubmit;
@@ -90,12 +95,15 @@ export class KeckForm<
     // The callback calls validate() through the proxy so $errors writes propagate
     // as observable changes.
     let $self!: any;
-    $self = observe(this as any, () => {
-      $self.validate();
+    $self = observe(this as any, {
+      focusable: true,
+      onChange: () => {
+        $self.validate();
+      },
     });
-    focus($self);
+    const { commit } = focus($self);
     deep($self[$values]);
-    focus($self, false);
+    commit();
     this.validate();
     // biome-ignore lint/correctness/noConstructorReturn: returns observable proxy so KeckForm is always reactive
     return $self as any;
@@ -208,7 +216,8 @@ export class KeckForm<
       // TFormInput could be 'unknown', which KeckFieldArray and KeckFieldObject won't accept.
       // But we know the type, and the field() method return type is explicit, so we can cast values as any to ignore TS errors.
       if (Array.isArray(value)) return new KeckFieldArray(this as any, path as any);
-      if (typeof value === 'object') return new KeckFieldObject(this as any, path as any);
+      if (value !== null && typeof value === 'object')
+        return new KeckFieldObject(this as any, path as any);
       return new KeckField(this as any, path as any);
     });
   }
@@ -223,7 +232,7 @@ export class KeckForm<
       this._submitAttemptCount++;
       if (output && this.isValid) {
         this._submitCount++;
-        await this.onSubmit?.(output, observe(this));
+        await this.onSubmit?.(output, observe(this as KeckForm<TFormInput, TFormOutput>));
       } else {
         await this.onSubmitAttempt?.();
       }

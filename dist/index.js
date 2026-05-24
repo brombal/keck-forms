@@ -75,15 +75,15 @@ class KeckFieldBase {
                 while (path.length) {
                     path.pop();
                     const pathValue = get(this.form[$touched], path);
-                    if (isEmpty(pathValue) ||
-                        (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p)))) {
+                    if (pathValue !== true &&
+                        (isEmpty(pathValue) || (Array.isArray(pathValue) && pathValue.every((p) => isEmpty(p))))) {
                         unset(this.form[$touched], path);
                     }
                     else {
                         break;
                     }
                 }
-                if (isEmpty(this.form[$touched])) {
+                if (this.form[$touched] !== true && isEmpty(this.form[$touched])) {
                     this.form[$touched] = false;
                 }
             }
@@ -97,7 +97,7 @@ class KeckFieldBase {
     }
     get allErrors() {
         return derive(() => this.form[$errors][this.path]
-            ? [{ path: this.path, errors: this.form[$errors][this.path] || [] }]
+            ? [{ path: this.path, errors: this.form[$errors][this.path] }]
             : [], (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
     get isValid() {
@@ -126,14 +126,101 @@ class KeckFieldArray extends KeckFieldBase {
     /**
      * Maps each field in the array to a new value by invoking the callback function.
      */
-    map(_callback) {
-        return [];
+    map(callback) {
+        const array = get(this.form[$values], this.path);
+        return array.map((_, i) => callback(this.field(String(i)), i));
     }
     get allErrors() {
         return derive(() => {
-            const entries = Object.entries(this.form[$errors]).filter(([key]) => key.startsWith(this.path));
+            const entries = Object.entries(this.form[$errors]).filter(([key]) => !this.path || key === this.path || key.startsWith(`${this.path}.`));
             return entries.map(([path, errors]) => ({ path, errors }));
         }, (a, b) => JSON.stringify(a) === JSON.stringify(b));
+    }
+    // Returns the $touched array for this path, or null if none exists.
+    _touchedArray() {
+        const touchedRoot = this.form[$touched];
+        if (!touchedRoot || touchedRoot === true)
+            return null;
+        const arr = get(touchedRoot, this.path);
+        return Array.isArray(arr) ? arr : null;
+    }
+    // Walks up the touched tree from this.path and unsets nodes that are empty.
+    _cleanupTouched() {
+        const pathParts = this.path.split('.');
+        while (pathParts.length) {
+            const val = get(this.form[$touched], pathParts.join('.'));
+            if (val !== true &&
+                (isEmpty(val) || (Array.isArray(val) && val.every((p) => isEmpty(p))))) {
+                unset(this.form[$touched], pathParts);
+            }
+            else {
+                break;
+            }
+            pathParts.pop();
+        }
+        if (isEmpty(this.form[$touched])) {
+            this.form[$touched] = false;
+        }
+    }
+    push(value) {
+        atomic(() => {
+            get(this.form[$values], this.path).push(value);
+            // New element is untouched by default — no touched state to update.
+        });
+    }
+    pop() {
+        return atomic(() => {
+            const result = get(this.form[$values], this.path).pop();
+            this._touchedArray()?.pop();
+            this._cleanupTouched();
+            return result;
+        });
+    }
+    remove(index) {
+        atomic(() => {
+            get(this.form[$values], this.path).splice(index, 1);
+            this._touchedArray()?.splice(index, 1);
+            this._cleanupTouched();
+        });
+    }
+    shift() {
+        return atomic(() => {
+            const result = get(this.form[$values], this.path).shift();
+            this._touchedArray()?.shift();
+            this._cleanupTouched();
+            return result;
+        });
+    }
+    unshift(value) {
+        atomic(() => {
+            get(this.form[$values], this.path).unshift(value);
+            this._touchedArray()?.unshift(null);
+        });
+    }
+    swap(indexA, indexB) {
+        atomic(() => {
+            const array = get(this.form[$values], this.path);
+            [array[indexA], array[indexB]] = [array[indexB], array[indexA]];
+            const touched = this._touchedArray();
+            if (touched) {
+                [touched[indexA], touched[indexB]] = [touched[indexB], touched[indexA]];
+            }
+        });
+    }
+    insert(index, value) {
+        atomic(() => {
+            get(this.form[$values], this.path).splice(index, 0, value);
+            this._touchedArray()?.splice(index, 0, null);
+        });
+    }
+    clear() {
+        atomic(() => {
+            get(this.form[$values], this.path).length = 0;
+            const touched = this._touchedArray();
+            if (touched)
+                touched.length = 0;
+            this._cleanupTouched();
+        });
     }
 }
 
@@ -143,7 +230,7 @@ class KeckFieldObject extends KeckFieldBase {
     }
     get allErrors() {
         return derive(() => {
-            const entries = Object.entries(this.form[$errors]).filter(([key]) => key.startsWith(this.path));
+            const entries = Object.entries(this.form[$errors]).filter(([key]) => !this.path || key === this.path || key.startsWith(`${this.path}.`));
             return entries.map(([path, errors]) => ({ path, errors }));
         }, (a, b) => JSON.stringify(a) === JSON.stringify(b));
     }
@@ -155,6 +242,7 @@ const reassignOptions = Symbol('reassignOptions');
  */
 class KeckForm {
     initial;
+    meta;
     [$values];
     [$touched] = null;
     [$errors] = {};
@@ -172,6 +260,7 @@ class KeckForm {
      */
     constructor(options) {
         this.initial = options.initial;
+        this.meta = (options.meta ?? {});
         this[$values] = cloneDeep(options.initial);
         this.validator = options.validate;
         this.onSubmit = options.onSubmit;
@@ -183,12 +272,15 @@ class KeckForm {
         // The callback calls validate() through the proxy so $errors writes propagate
         // as observable changes.
         let $self;
-        $self = observe(this, () => {
-            $self.validate();
+        $self = observe(this, {
+            focusable: true,
+            onChange: () => {
+                $self.validate();
+            },
         });
-        focus($self);
+        const { commit } = focus($self);
         deep($self[$values]);
-        focus($self, false);
+        commit();
         this.validate();
         // biome-ignore lint/correctness/noConstructorReturn: returns observable proxy so KeckForm is always reactive
         return $self;
@@ -287,7 +379,7 @@ class KeckForm {
             // But we know the type, and the field() method return type is explicit, so we can cast values as any to ignore TS errors.
             if (Array.isArray(value))
                 return new KeckFieldArray(this, path);
-            if (typeof value === 'object')
+            if (value !== null && typeof value === 'object')
                 return new KeckFieldObject(this, path);
             return new KeckField(this, path);
         });
@@ -357,7 +449,9 @@ function useFormContext(dontThrowOnMissingProvider = false) {
 
 function useForm(options, deps) {
     const context = useFormContext(true);
-    const contextFormReturn = options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
+    const contextFormReturn = options.tryContext && context
+        ? { form: context, FormProvider: Fragment }
+        : null;
     const formRef = useRef(contextFormReturn);
     const previousDepsRef = useRef(undefined);
     const depsChanged = !!deps?.length &&
@@ -379,6 +473,7 @@ function useForm(options, deps) {
             validate: options.validate,
             onSubmit: options.onSubmit,
             onSubmitAttempt: options.onSubmitAttempt,
+            meta: options.meta,
         });
         const typedContext = keckFormContext;
         formRef.current = {
@@ -389,7 +484,12 @@ function useForm(options, deps) {
         };
     }
     const form = useObserver(formRef.current.form, [formRef.current.form]);
-    form[reassignOptions]({ ...options, initial });
+    form[reassignOptions]({
+        validate: options.validate,
+        initial,
+        onSubmit: options.onSubmit,
+        onSubmitAttempt: options.onSubmitAttempt,
+    });
     return {
         form,
         FormProvider: formRef.current.FormProvider,
@@ -397,7 +497,7 @@ function useForm(options, deps) {
 }
 
 const zodValidator = (schema) => {
-    return ((values, setError) => {
+    return (values, setError) => {
         const result = schema.safeParse(values);
         if (result.success)
             return result.data;
@@ -406,7 +506,7 @@ const zodValidator = (schema) => {
             setError(path, error.message);
         }
         return null;
-    });
+    };
 };
 
 export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };

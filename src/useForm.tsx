@@ -14,26 +14,34 @@ import { keckFormContext, useFormContext } from './useFormContext';
 export type UseFormReturn<
   TFormInput extends ObjectOrUnknown,
   TFormOutput extends ObjectOrUnknown,
+  TMeta extends object = Record<string, unknown>,
 > = {
-  form: KeckForm<TFormInput, TFormOutput>;
+  form: KeckForm<TFormInput, TFormOutput, TMeta>;
   FormProvider: React.FC<{ children: React.ReactNode | React.ReactNode[] }>;
 };
 
-export function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(
+export function useForm<
+  TFormInput extends object,
+  TFormOutput extends object = TFormInput,
+  TMeta extends object = Record<string, unknown>,
+>(
   options: {
     tryContext?: boolean;
     initial: TFormInput | (() => TFormInput);
     validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
+    meta?: TMeta;
   },
   deps?: any[],
-): UseFormReturn<TFormInput, TFormOutput> {
+): UseFormReturn<TFormInput, TFormOutput, TMeta> {
   const context = useFormContext<TFormInput, TFormOutput>(true);
   const contextFormReturn =
-    options.tryContext && context ? { form: context, FormProvider: Fragment } : null;
+    options.tryContext && context
+      ? { form: context as KeckForm<TFormInput, TFormOutput, TMeta>, FormProvider: Fragment }
+      : null;
 
-  const formRef = useRef<UseFormReturn<TFormInput, TFormOutput>>(contextFormReturn);
+  const formRef = useRef<UseFormReturn<TFormInput, TFormOutput, TMeta>>(contextFormReturn);
 
   const previousDepsRef = useRef<any[] | undefined>(undefined);
   const depsChanged =
@@ -54,13 +62,18 @@ export function useForm<TFormInput extends object, TFormOutput extends object = 
   }, [typeof options.initial === 'function' ? undefined : options.initial, ...(deps || [])]);
 
   if (depsChanged || !formRef.current) {
-    const form = new KeckForm<TFormInput, TFormOutput>({
+    const form = new KeckForm<TFormInput, TFormOutput, TMeta>({
       initial,
       validate: options.validate,
       onSubmit: options.onSubmit,
       onSubmitAttempt: options.onSubmitAttempt,
+      meta: options.meta,
     });
-    const typedContext = keckFormContext as React.Context<KeckForm<TFormInput, TFormOutput> | null>;
+    const typedContext = keckFormContext as React.Context<KeckForm<
+      TFormInput,
+      TFormOutput,
+      TMeta
+    > | null>;
     formRef.current = {
       form,
       FormProvider: ({ children }) => {
@@ -70,7 +83,12 @@ export function useForm<TFormInput extends object, TFormOutput extends object = 
   }
 
   const form = useObserver(formRef.current.form, [formRef.current.form]);
-  form[reassignOptions]({ ...options, initial });
+  form[reassignOptions]({
+    validate: options.validate,
+    initial,
+    onSubmit: options.onSubmit,
+    onSubmitAttempt: options.onSubmitAttempt,
+  });
 
   return {
     form,

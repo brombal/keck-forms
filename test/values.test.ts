@@ -137,6 +137,16 @@ describe('values', () => {
     void form.field('').value.nothing;
   });
 
+  test('null field value returns KeckField not KeckFieldObject', () => {
+    const form = new KeckForm({
+      initial: { user: null as { name: string } | null },
+      validate: () => ({}),
+    });
+
+    expect(form.field('user')).toBeInstanceOf(KeckField);
+    expect(form.field('user').value).toBe(null);
+  });
+
   test('setValues() correctly sets form values', () => {
     const values = {
       name: 'John',

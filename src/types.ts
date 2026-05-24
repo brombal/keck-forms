@@ -29,3 +29,9 @@ export type FormInputType<T> =
  */
 export type FormOutputType<T> =
   T extends UseFormReturn<infer _TFormInput, infer TFormOutput> ? TFormOutput : never;
+
+/**
+ * Takes a UseFormReturn and extracts the TMeta type.
+ */
+export type FormMetaType<T> =
+  T extends UseFormReturn<infer _TFormInput, infer _TFormOutput, infer TMeta> ? TMeta : never;

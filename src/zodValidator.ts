@@ -4,8 +4,8 @@ import type { StringPaths } from './types';
 
 export const zodValidator = <TSchema extends z.Schema<any>>(
   schema: TSchema,
-): TSchema extends z.Schema ? FormValidatorFn<any, z.output<TSchema>> : never => {
-  return ((values, setError) => {
+): FormValidatorFn<z.input<TSchema>, z.output<TSchema>> => {
+  return (values, setError) => {
     const result = schema.safeParse(values);
     if (result.success) return result.data;
 
@@ -15,5 +15,5 @@ export const zodValidator = <TSchema extends z.Schema<any>>(
     }
 
     return null;
-  }) as TSchema extends z.Schema ? FormValidatorFn<any, z.output<TSchema>> : never;
+  };
 };
