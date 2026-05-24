@@ -241,12 +241,13 @@ describe('touched', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit } = focus(formObserver);
 
     // Observe touched value
     void formObserver.field('friends.0.name').touched;
     void formObserver.field('age').touched;
+    commit();
 
     // Changing value should trigger callback
     form.field('friends.0.name').touched = true;

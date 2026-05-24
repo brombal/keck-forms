@@ -95,12 +95,15 @@ export class KeckForm<
     // The callback calls validate() through the proxy so $errors writes propagate
     // as observable changes.
     let $self!: any;
-    $self = observe(this as any, () => {
-      $self.validate();
+    $self = observe(this as any, {
+      focusable: true,
+      onChange: () => {
+        $self.validate();
+      },
     });
-    focus($self);
+    const { commit } = focus($self);
     deep($self[$values]);
-    focus($self, false);
+    commit();
     this.validate();
     // biome-ignore lint/correctness/noConstructorReturn: returns observable proxy so KeckForm is always reactive
     return $self as any;

@@ -32,10 +32,11 @@ describe('form meta', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit } = focus(formObserver);
 
     void formObserver.meta.serverError;
+    commit();
 
     form.meta.serverError = 'An error';
     expect(mockFn).toHaveBeenCalledTimes(1);
@@ -51,10 +52,11 @@ describe('form meta', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit } = focus(formObserver);
 
     void formObserver.meta.serverError; // only observe serverError
+    commit();
 
     form.meta.count = 99; // unobserved — should not fire
     expect(mockFn).toHaveBeenCalledTimes(0);

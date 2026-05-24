@@ -16,12 +16,13 @@ describe('observability', () => {
     const mockFn = vi.fn();
 
     // Use the .observe method to observe the form with a callback.
-    const formObserver = observe(form, mockFn);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
     // Focus the formObserver to start observing changes to specific properties
-    focus(formObserver);
+    const { commit: commit1 } = focus(formObserver);
 
     // Use the observer's `.field` method to get a specific field and access its value to start observing changes to it.
     formObserver.field('name').value;
+    commit1();
 
     // A change to an unobserved field value will not trigger the callback.
     form.field('age').value = 10;
@@ -45,12 +46,13 @@ describe('observability', () => {
     const mockObserveFn = vi.fn();
 
     // Use the .observe method to observe the form with a callback.
-    const formObserver = observe(form, mockObserveFn);
+    const formObserver = observe(form, { focusable: true, onChange: mockObserveFn });
     // Focus the formObserver to start observing changes to specific properties
-    focus(formObserver);
+    const { commit: commit2 } = focus(formObserver);
 
     // Use the observer's `.field` method to get a specific field and access its value to start observing changes to it.
     formObserver.field('name').value;
+    commit2();
 
     // A change to an unobserved field value will not trigger the callback.
     vi.resetAllMocks();
@@ -78,9 +80,10 @@ describe('observability', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit: commit3 } = focus(formObserver);
     void formObserver.field('name').allErrors;
+    commit3();
 
     // Changing age triggers re-validation but name.allErrors is unchanged — comparator returns true.
     form.field('age').value = 17;
@@ -105,9 +108,10 @@ describe('observability', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit: commit4 } = focus(formObserver);
     void formObserver.field('address').allErrors;
+    commit4();
 
     // Fixing name (unrelated) triggers re-validation but address.allErrors is unchanged.
     form.field('name').value = 'Alice';

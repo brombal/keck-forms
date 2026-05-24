@@ -64,10 +64,11 @@ describe('validation', () => {
     );
 
     const mockFn = vi.fn();
-    const formObserver = observe(form, mockFn);
-    focus(formObserver);
+    const formObserver = observe(form, { focusable: true, onChange: mockFn });
+    const { commit } = focus(formObserver);
 
     void formObserver.field('age').isValid;
+    commit();
 
     form.field('age').value = 16;
     expect(mockFn).toHaveBeenCalledTimes(1);

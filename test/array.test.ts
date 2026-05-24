@@ -254,9 +254,10 @@ describe('array', () => {
       );
 
       const mockFn = vi.fn();
-      const formObserver = observe(form, mockFn);
-      focus(formObserver);
+      const formObserver = observe(form, { focusable: true, onChange: mockFn });
+      const { commit } = focus(formObserver);
       void formObserver.field('friends').allErrors;
+      commit();
 
       // Invalidating an unrelated field triggers re-validation but friends errors are unchanged.
       // The comparator returns true, so the observer is NOT notified.

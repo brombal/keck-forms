@@ -1,5 +1,5 @@
-import React from 'react';
 import { IsNever, IsUnknown, Paths, LiteralUnion, Get } from 'type-fest';
+import React from 'react';
 import { z } from 'zod';
 
 declare const $values: unique symbol;
@@ -12,18 +12,20 @@ type OnSubmitAttemptFn = () => Promise<void> | void;
 /**
  * The public interface for the KeckForm class constructor parameters.
  */
-type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = {
+type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
     initial: TFormInput;
     validate?: FormValidatorFn<TFormInput, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
+    meta?: TMeta;
 };
 declare const reassignOptions: unique symbol;
 /**
  * A KeckForm object represents the entire state of a form.
  */
-declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown = TFormInput> {
+declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown = TFormInput, TMeta extends object = Record<string, unknown>> {
     initial: TFormInput;
+    meta: TMeta;
     [$values]: TFormInput;
     [$touched]: any;
     [$errors]: Record<string, string[]>;
@@ -39,7 +41,7 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
      * Creates a KeckForm by providing an initial state and a validation function.
      * @param options The initial state and validation function.
      */
-    constructor(options: KeckFormOptions<TFormInput, TFormOutput>);
+    constructor(options: KeckFormOptions<TFormInput, TFormOutput, TMeta>);
     [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>): void;
     get output(): TFormOutput | null;
     get value(): TFormInput;
@@ -84,19 +86,20 @@ declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends O
     get submitError(): any;
 }
 
-type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = {
-    form: KeckForm<TFormInput, TFormOutput>;
+type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
+    form: KeckForm<TFormInput, TFormOutput, TMeta>;
     FormProvider: React.FC<{
         children: React.ReactNode | React.ReactNode[];
     }>;
 };
-declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput>(options: {
+declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput, TMeta extends object = Record<string, unknown>>(options: {
     tryContext?: boolean;
     initial: TFormInput | (() => TFormInput);
     validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
-}, deps?: any[]): UseFormReturn<TFormInput, TFormOutput>;
+    meta?: TMeta;
+}, deps?: any[]): UseFormReturn<TFormInput, TFormOutput, TMeta>;
 
 type ToString<T> = T extends string | number ? `${T}` : never;
 /**
@@ -118,17 +121,31 @@ type FormInputType<T> = T extends UseFormReturn<infer TFormInput, infer _TFormOu
  * Takes a UseFormReturn and extracts the TFormOutput type.
  */
 type FormOutputType<T> = T extends UseFormReturn<infer _TFormInput, infer TFormOutput> ? TFormOutput : never;
+/**
+ * Takes a UseFormReturn and extracts the TMeta type.
+ */
+type FormMetaType<T> = T extends UseFormReturn<infer _TFormInput, infer _TFormOutput, infer TMeta> ? TMeta : never;
 
 declare class KeckFieldArray<TFormInput extends object, TStringPath extends string> extends KeckFieldBase<TFormInput, TStringPath> {
     field<TPath extends string>(_path: TPath): `${TStringPath}.${TPath}` extends StringPaths<TFormInput> ? KeckFieldForPath<TFormInput, `${TStringPath}.${TPath}` extends StringPaths<TFormInput> ? `${TStringPath}.${TPath}` : never> : never;
     /**
      * Maps each field in the array to a new value by invoking the callback function.
      */
-    map<TReturn>(_callback: (field: KeckFieldForPath<TFormInput, `${TStringPath}.${number}` extends StringPaths<TFormInput> ? `${TStringPath}.${number}` : never>, index: number) => TReturn): TReturn[];
+    map<TReturn>(callback: (field: KeckFieldForPath<TFormInput, `${TStringPath}.${number}` extends StringPaths<TFormInput> ? `${TStringPath}.${number}` : never>, index: number) => TReturn): TReturn[];
     get allErrors(): Array<{
         path: string;
         errors: string[];
     }>;
+    private _touchedArray;
+    private _cleanupTouched;
+    push(value: Get<TFormInput, `${TStringPath}.${number}`>): void;
+    pop(): Get<TFormInput, `${TStringPath}.${number}`> | undefined;
+    remove(index: number): void;
+    shift(): Get<TFormInput, `${TStringPath}.${number}`> | undefined;
+    unshift(value: Get<TFormInput, `${TStringPath}.${number}`>): void;
+    swap(indexA: number, indexB: number): void;
+    insert(index: number, value: Get<TFormInput, `${TStringPath}.${number}`>): void;
+    clear(): void;
 }
 
 declare class KeckFieldObject<TFormInput extends object, TStringPath extends string> extends KeckFieldBase<TFormInput, TStringPath> {
@@ -170,7 +187,7 @@ declare class KeckField<TFormInput extends ObjectOrUnknown, TStringPath extends 
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider: true): KeckForm<TFormInput, TFormOutput> | null;
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider?: false): KeckForm<TFormInput, TFormOutput>;
 
-declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => TSchema extends z.Schema ? FormValidatorFn<any, z.output<TSchema>> : never;
+declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => FormValidatorFn<z.input<TSchema>, z.output<TSchema>>;
 
 export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
-export type { FormInputType, FormOutputType, KeckFormOptions };
+export type { FormInputType, FormMetaType, FormOutputType, KeckFormOptions };

@@ -159,11 +159,12 @@ describe('reset', () => {
           permissions: new Set(['role-default']),
         },
       }),
-      vi.fn(),
+      { focusable: true, onChange: vi.fn() },
     );
-    focus(observer);
+    const { commit } = focus(observer);
 
     const firstSet = observer.field('permissions').value;
+    commit();
     firstSet.add('user-override');
     expect([...observer.field('permissions').value]).toEqual(['role-default', 'user-override']);
 
