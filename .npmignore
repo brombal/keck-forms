@@ -1,3 +1,5 @@
 *
 !dist/index.*
 !dist/types.*
+!README.md
+!LICENSE
