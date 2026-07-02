@@ -1,10 +1,11 @@
 import { atomic, derive, shallowCompare, unwrap } from 'keck';
-import { cloneDeep, isEmpty, isEqual, set, unset } from 'lodash-es';
+import { isEmpty, isEqual, set, unset } from 'lodash-es';
 import type { KeckFieldArray } from './KeckFieldArray';
 import type { KeckFieldObject } from './KeckFieldObject';
 import type { KeckForm } from './KeckForm';
 import { $errors, $touched, $values } from './KeckForm.internalFields';
 import type { GetWithRoot, ObjectOrUnknown, StringPaths } from './types';
+import { cloneValues } from './util/cloneValues';
 import { get } from './util/get';
 
 export type KeckFieldForPath<
@@ -40,6 +41,9 @@ export abstract class KeckFieldBase<
   }
 
   set value(value: GetWithRoot<TFormInput, TStringPath>) {
+    // If `value` is itself a Keck observable proxy, Keck's set trap unwraps it on assignment —
+    // raw form state never holds proxies. Proxies nested inside a plain container are an
+    // invariant error, surfaced by cloneValues() when the form validates (see cloneValues).
     atomic(() => {
       if (this.path) {
         set(this.form[$values] as object, this.path, value);
@@ -132,7 +136,7 @@ export abstract class KeckFieldBase<
 
   reset() {
     atomic(() => {
-      const value = cloneDeep(get(this.form.initial, this.path));
+      const value = cloneValues(get(this.form.initial, this.path));
       if (this.path) {
         set(this.form[$values] as object, this.path, value);
       } else {

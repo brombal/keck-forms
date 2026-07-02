@@ -8,13 +8,13 @@ import {
   transformInPlace,
   unwrap,
 } from 'keck';
-import { cloneDeep } from 'lodash-es';
 import type { IsNever, IsUnknown } from 'type-fest';
 import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckField';
 import { KeckFieldArray } from './KeckFieldArray';
 import { KeckFieldObject } from './KeckFieldObject';
 import { $errors, $touched, $values } from './KeckForm.internalFields';
 import type { ObjectOrUnknown, StringPaths } from './types';
+import { cloneValues } from './util/cloneValues';
 import { get } from './util/get';
 
 export type FormValidatorFn<
@@ -84,7 +84,7 @@ export class KeckForm<
   constructor(options: KeckFormOptions<TFormInput, TFormOutput, TMeta>) {
     this.initial = options.initial;
     this.meta = (options.meta ?? {}) as TMeta;
-    this[$values] = cloneDeep(options.initial);
+    this[$values] = cloneValues(options.initial);
     this.validator = options.validate;
     this.onSubmit = options.onSubmit;
     this.onSubmitAttempt = options.onSubmitAttempt;
@@ -131,7 +131,7 @@ export class KeckForm<
   validate(): TFormOutput | null {
     return atomic(() => {
       const errors = {} as Record<string, string[]>;
-      const input = cloneDeep(unwrap(this[$values]));
+      const input = cloneValues(this[$values]);
       this._output = this.validator
         ? this.validator(input, (field, error, action = 'push') => {
             if (!error && error !== '') {
@@ -181,8 +181,7 @@ export class KeckForm<
    */
   reset(resetOptions?: { values?: boolean; touched?: boolean; submit?: boolean }) {
     atomic(() => {
-      if (!resetOptions || resetOptions.values === true)
-        this[$values] = cloneDeep(unwrap(this.initial));
+      if (!resetOptions || resetOptions.values === true) this[$values] = cloneValues(this.initial);
       if (!resetOptions || resetOptions.touched === true) this[$touched] = null;
       if (!resetOptions || resetOptions.submit === true) {
         this._submitCount = 0;
