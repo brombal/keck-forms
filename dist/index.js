@@ -294,6 +294,46 @@ class KeckFieldObject extends KeckFieldBase {
     }
 }
 
+/**
+ * Creates a FormValidatorFn from any Standard Schema (https://standardschema.dev) — e.g. a zod
+ * (>= 3.24), valibot, or arktype schema. This is what the `schema` form option uses internally.
+ *
+ * By default the validator's input type is the schema's input type; pass TFormInput explicitly
+ * when the form state is intentionally wider than the schema input (the validator passes any
+ * value to the schema at runtime, so this is always safe).
+ *
+ * Async validation is not supported: a schema whose validate function returns a Promise (e.g. a
+ * zod schema with async refinements) throws when the form validates.
+ */
+const standardSchemaValidator = (schema) => {
+    return (values, setError) => {
+        const result = schema['~standard'].validate(values);
+        if (result instanceof Promise) {
+            throw new Error('keck-forms: async validation is not supported (the schema returned a Promise)');
+        }
+        if (!result.issues)
+            return result.value;
+        for (const issue of result.issues) {
+            const path = (issue.path ?? [])
+                .map((segment) => String(typeof segment === 'object' && segment !== null ? segment.key : segment))
+                .join('.');
+            setError(path, issue.message);
+        }
+        return null;
+    };
+};
+
+/**
+ * Resolves the effective validator from form options: an explicit `validate` function wins;
+ * otherwise a provided Standard Schema is wrapped with standardSchemaValidator.
+ */
+function resolveValidator(options) {
+    if (options.validate)
+        return options.validate;
+    if (options.schema)
+        return standardSchemaValidator(options.schema);
+    return undefined;
+}
 const reassignOptions = Symbol('reassignOptions');
 /**
  * A KeckForm object represents the entire state of a form.
@@ -320,7 +360,7 @@ class KeckForm {
         this.initial = options.initial;
         this.meta = (options.meta ?? {});
         this[$values] = cloneValues(options.initial);
-        this.validator = options.validate;
+        this.validator = resolveValidator(options);
         this.onSubmit = options.onSubmit;
         this.onSubmitAttempt = options.onSubmitAttempt;
         // Set up a focused deep observation on $values so that any mutation to it
@@ -348,8 +388,8 @@ class KeckForm {
             this.onSubmit = options.onSubmit;
         if (options.onSubmitAttempt)
             this.onSubmitAttempt = options.onSubmitAttempt;
-        if (options.validate)
-            this.validator = options.validate;
+        if (options.validate || options.schema)
+            this.validator = resolveValidator(options);
         if (options.initial)
             this.initial = options.initial;
     }
@@ -517,6 +557,7 @@ function useForm(options, deps) {
         const form = new KeckForm({
             initial,
             validate: options.validate,
+            schema: options.schema,
             onSubmit: options.onSubmit,
             onSubmitAttempt: options.onSubmitAttempt,
             meta: options.meta,
@@ -529,6 +570,7 @@ function useForm(options, deps) {
     const form = useObserver(formRef.current.form, [formRef.current.form]);
     form[reassignOptions]({
         validate: options.validate,
+        schema: options.schema,
         initial,
         onSubmit: options.onSubmit,
         onSubmitAttempt: options.onSubmitAttempt,
@@ -539,6 +581,16 @@ function useForm(options, deps) {
     };
 }
 
+/**
+ * Creates a FormValidatorFn from a zod schema. By default the validator's input type is the
+ * schema's input type; pass TFormInput explicitly when the form state is intentionally wider than
+ * the schema input (the validator safeParses any value at runtime, so this is always safe).
+ *
+ * @deprecated Use the `schema` form option or `standardSchemaValidator` instead — zod >= 3.24
+ * implements the Standard Schema interface, and both provide the same behavior and typing
+ * (including the input-widening TFormInput parameter). zodValidator will be removed in
+ * keck-forms 4.
+ */
 const zodValidator = (schema) => {
     return (values, setError) => {
         const result = schema.safeParse(values);
@@ -552,5 +604,5 @@ const zodValidator = (schema) => {
     };
 };
 
-export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
+export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, standardSchemaValidator, useForm, useFormContext, zodValidator };
 //# sourceMappingURL=index.js.map

@@ -3,16 +3,90 @@ import React from 'react';
 import { Paths, LiteralUnion, Get, IsNever, IsUnknown } from 'type-fest';
 import { z } from 'zod';
 
+/**
+ * The Standard Schema interface (https://standardschema.dev) — a common interface implemented by
+ * validation libraries including zod (>= 3.24), valibot (>= 1.0), and arktype (>= 2.0).
+ *
+ * These types are vendored (copied) from @standard-schema/spec, as the spec recommends for
+ * consuming libraries: the interface is small, stable (versioned by the `version` property), and
+ * copying it avoids imposing a dependency on consumers. Do not modify — it must remain
+ * structurally identical to the published spec so that implementing libraries match.
+ */
+interface StandardSchemaV1<Input = unknown, Output = Input> {
+    /** The Standard Schema properties. */
+    readonly '~standard': StandardSchemaV1.Props<Input, Output>;
+}
+declare namespace StandardSchemaV1 {
+    /** The Standard Schema properties interface. */
+    interface Props<Input = unknown, Output = Input> {
+        /** The version number of the standard. */
+        readonly version: 1;
+        /** The vendor name of the schema library. */
+        readonly vendor: string;
+        /** Validates unknown input values. */
+        readonly validate: (value: unknown) => Result<Output> | Promise<Result<Output>>;
+        /** Inferred types associated with the schema. */
+        readonly types?: Types<Input, Output> | undefined;
+    }
+    /** The result interface of the validate function. */
+    type Result<Output> = SuccessResult<Output> | FailureResult;
+    /** The result interface if validation succeeds. */
+    interface SuccessResult<Output> {
+        /** The typed output value. */
+        readonly value: Output;
+        /** The non-existent issues. */
+        readonly issues?: undefined;
+    }
+    /** The result interface if validation fails. */
+    interface FailureResult {
+        /** The issues of failed validation. */
+        readonly issues: ReadonlyArray<Issue>;
+    }
+    /** The issue interface of the failure output. */
+    interface Issue {
+        /** The error message of the issue. */
+        readonly message: string;
+        /** The path of the issue, if any. */
+        readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined;
+    }
+    /** The path segment interface of the issue. */
+    interface PathSegment {
+        /** The key representing a path segment. */
+        readonly key: PropertyKey;
+    }
+    /** The Standard Schema types interface. */
+    interface Types<Input = unknown, Output = Input> {
+        /** The input type of the schema. */
+        readonly input: Input;
+        /** The output type of the schema. */
+        readonly output: Output;
+    }
+    /** Infers the input type of a Standard Schema. */
+    type InferInput<Schema extends StandardSchemaV1> = NonNullable<Schema['~standard']['types']>['input'];
+    /** Infers the output type of a Standard Schema. */
+    type InferOutput<Schema extends StandardSchemaV1> = NonNullable<Schema['~standard']['types']>['output'];
+}
+
 type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
     form: KeckForm<TFormInput, TFormOutput, TMeta>;
     FormProvider: React.FC<{
         children: React.ReactNode | React.ReactNode[];
     }>;
 };
+declare function useForm<TSchema extends StandardSchemaV1<object, object>, TMeta extends object = Record<string, unknown>>(options: {
+    tryContext?: boolean;
+    initial: NoInfer<StandardSchemaV1.InferInput<TSchema>> | (() => NoInfer<StandardSchemaV1.InferInput<TSchema>>);
+    schema: TSchema;
+    validate?: undefined;
+    onSubmit?: OnSubmitFn<StandardSchemaV1.InferInput<TSchema>, StandardSchemaV1.InferOutput<TSchema>>;
+    onSubmitAttempt?: OnSubmitAttemptFn;
+    meta?: TMeta;
+}, deps?: any[]): UseFormReturn<StandardSchemaV1.InferInput<TSchema>, StandardSchemaV1.InferOutput<TSchema>, TMeta>;
 declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput, TMeta extends object = Record<string, unknown>>(options: {
     tryContext?: boolean;
-    initial: TFormInput | (() => TFormInput);
-    validate?: FormValidatorFn<NoInfer<TFormInput>, TFormOutput>;
+    initial: (TFormInput & {}) | (() => TFormInput & {});
+    schema?: undefined;
+    validate?: FormValidatorFn<TFormInput, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
     meta?: TMeta;
@@ -114,6 +188,12 @@ type OnSubmitAttemptFn = () => Promise<void> | void;
 type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
     initial: TFormInput;
     validate?: FormValidatorFn<TFormInput, TFormOutput>;
+    /**
+     * A Standard Schema (https://standardschema.dev) used to validate the form — e.g. a zod
+     * (>= 3.24), valibot, or arktype schema. Ignored if `validate` is provided. Async schemas are
+     * not supported (validation throws if the schema returns a Promise).
+     */
+    schema?: StandardSchemaV1<any, TFormOutput>;
     onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
     onSubmitAttempt?: OnSubmitAttemptFn;
     meta?: TMeta;
@@ -198,10 +278,33 @@ declare function FormProvider<TFormInput extends ObjectOrUnknown, TFormOutput ex
     children: React.ReactNode | React.ReactNode[];
 }): react_jsx_runtime.JSX.Element;
 
+/**
+ * Creates a FormValidatorFn from any Standard Schema (https://standardschema.dev) — e.g. a zod
+ * (>= 3.24), valibot, or arktype schema. This is what the `schema` form option uses internally.
+ *
+ * By default the validator's input type is the schema's input type; pass TFormInput explicitly
+ * when the form state is intentionally wider than the schema input (the validator passes any
+ * value to the schema at runtime, so this is always safe).
+ *
+ * Async validation is not supported: a schema whose validate function returns a Promise (e.g. a
+ * zod schema with async refinements) throws when the form validates.
+ */
+declare const standardSchemaValidator: <TSchema extends StandardSchemaV1, TFormInput extends ObjectOrUnknown = StandardSchemaV1.InferInput<TSchema>>(schema: TSchema) => FormValidatorFn<TFormInput, StandardSchemaV1.InferOutput<TSchema>>;
+
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider: true): KeckForm<TFormInput, TFormOutput> | null;
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider?: false): KeckForm<TFormInput, TFormOutput>;
 
-declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => FormValidatorFn<z.input<TSchema>, z.output<TSchema>>;
+/**
+ * Creates a FormValidatorFn from a zod schema. By default the validator's input type is the
+ * schema's input type; pass TFormInput explicitly when the form state is intentionally wider than
+ * the schema input (the validator safeParses any value at runtime, so this is always safe).
+ *
+ * @deprecated Use the `schema` form option or `standardSchemaValidator` instead — zod >= 3.24
+ * implements the Standard Schema interface, and both provide the same behavior and typing
+ * (including the input-widening TFormInput parameter). zodValidator will be removed in
+ * keck-forms 4.
+ */
+declare const zodValidator: <TSchema extends z.Schema<any>, TFormInput extends ObjectOrUnknown = z.input<TSchema>>(schema: TSchema) => FormValidatorFn<TFormInput, z.output<TSchema>>;
 
-export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
-export type { FormInputType, FormMetaType, FormOutputType, KeckFormOptions };
+export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, StandardSchemaV1, standardSchemaValidator, useForm, useFormContext, zodValidator };
+export type { FormInputType, FormMetaType, FormOutputType, FormValidatorFn, KeckFormOptions, OnSubmitAttemptFn, OnSubmitFn };

@@ -41,7 +41,7 @@ function App() {
   // Create a Keck Form 
   const { form, field, FormProvider } = useForm({
     initial: initialData,
-    validate: zodValidator(schema),
+    schema,
   });
 
   return (
@@ -182,7 +182,8 @@ function TextField({ fieldPath }: { fieldPath: string }) {
 ```tsx
 function useForm<TInput extends object, TOutput extends object>(options: {
   initial: TInput;
-  validate: FormValidatorFn<TInput, TOutput>;
+  schema?: StandardSchemaV1;
+  validate?: FormValidatorFn<TInput, TOutput>;
 }): {
   form: TOutput;
   field: GetFormFieldFn<TInput>;
@@ -193,13 +194,26 @@ function useForm<TInput extends object, TOutput extends object>(options: {
 **Arguments**:
 
 - `initial`: The initial form state.
-- `validate`: A function or schema to validate the form.
+- `schema`: A [Standard Schema](https://standardschema.dev) to validate the form — e.g. a zod
+  (>= 3.24), valibot, or arktype schema. Async schemas are not supported.
+- `validate`: A validation function (e.g. from `zodValidator`). Takes precedence over `schema`.
 
 **Returns**:
 
 - `form`: The current validated output of the form.
 - `field`: A function to get or manipulate specific fields.
 - `FormProvider`: A context provider for the form.
+
+**Type inference**: the form's input/output types come from `schema` when provided, otherwise
+from `validate`'s type, otherwise from `initial`. When a schema or validator drives the types,
+`initial` only needs to *satisfy* the input type (be assignable to it) — e.g. a `string` initial
+value is fine for a `string | null` schema input. Explicit type arguments always win.
+
+One TypeScript limitation to know: an *inline* generic validator call combined with an
+*unannotated* `onSubmit` parameter (`validate: zodValidator(schema), onSubmit(output) {...}`)
+prevents the validator from driving inference (you'll get an error on the `validate` line). Hoist
+the validator to a `const`, annotate `onSubmit`'s parameter, or use the `schema` option — a plain
+property never has this problem.
 
 ---
 

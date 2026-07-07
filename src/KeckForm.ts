@@ -13,6 +13,8 @@ import { KeckField, type KeckFieldForPath, type TypedKeckField } from './KeckFie
 import { KeckFieldArray } from './KeckFieldArray';
 import { KeckFieldObject } from './KeckFieldObject';
 import { $errors, $touched, $values } from './KeckForm.internalFields';
+import type { StandardSchemaV1 } from './standardSchema';
+import { standardSchemaValidator } from './standardSchemaValidator';
 import type { ObjectOrUnknown, StringPaths } from './types';
 import { cloneValues } from './util/cloneValues';
 import { get } from './util/get';
@@ -47,10 +49,29 @@ export type KeckFormOptions<
   // TODO do we also need "defaults"? The user may want to set initial values (values to which the form resets or believes an input is unmodified)
   //  as well as values to start the form with, which may differ.
   validate?: FormValidatorFn<TFormInput, TFormOutput>;
+  /**
+   * A Standard Schema (https://standardschema.dev) used to validate the form — e.g. a zod
+   * (>= 3.24), valibot, or arktype schema. Ignored if `validate` is provided. Async schemas are
+   * not supported (validation throws if the schema returns a Promise).
+   */
+  schema?: StandardSchemaV1<any, TFormOutput>;
   onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
   onSubmitAttempt?: OnSubmitAttemptFn;
   meta?: TMeta;
 };
+
+/**
+ * Resolves the effective validator from form options: an explicit `validate` function wins;
+ * otherwise a provided Standard Schema is wrapped with standardSchemaValidator.
+ */
+function resolveValidator<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown>(
+  options: Pick<KeckFormOptions<TFormInput, TFormOutput>, 'validate' | 'schema'>,
+): FormValidatorFn<TFormInput, TFormOutput> | undefined {
+  if (options.validate) return options.validate;
+  if (options.schema)
+    return standardSchemaValidator(options.schema) as FormValidatorFn<TFormInput, TFormOutput>;
+  return undefined;
+}
 
 export const reassignOptions = Symbol('reassignOptions');
 
@@ -85,7 +106,7 @@ export class KeckForm<
     this.initial = options.initial;
     this.meta = (options.meta ?? {}) as TMeta;
     this[$values] = cloneValues(options.initial);
-    this.validator = options.validate;
+    this.validator = resolveValidator(options);
     this.onSubmit = options.onSubmit;
     this.onSubmitAttempt = options.onSubmitAttempt;
     // Set up a focused deep observation on $values so that any mutation to it
@@ -112,7 +133,7 @@ export class KeckForm<
   [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>) {
     if (options.onSubmit) this.onSubmit = options.onSubmit;
     if (options.onSubmitAttempt) this.onSubmitAttempt = options.onSubmitAttempt;
-    if (options.validate) this.validator = options.validate;
+    if (options.validate || options.schema) this.validator = resolveValidator(options);
     if (options.initial) this.initial = options.initial;
   }
 
