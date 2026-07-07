@@ -1,3 +1,4 @@
+export { FormProvider } from './FormProvider';
 export { KeckField } from './KeckField';
 export { KeckFieldArray } from './KeckFieldArray';
 export { KeckFieldObject } from './KeckFieldObject';

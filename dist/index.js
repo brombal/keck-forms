@@ -1,8 +1,35 @@
-import { unwrap, atomic, derive, shallowCompare, registerObservableClass, observe, focus, deep, transformInPlace, peek } from 'keck';
-import { cloneDeepWith, get as get$1, set, isEqual, unset, isEmpty } from 'lodash-es';
 import { jsx } from 'react/jsx-runtime';
 import { useObserver } from 'keck/react';
 import { createContext, useContext, useRef, Fragment, useMemo } from 'react';
+import { unwrap, atomic, derive, shallowCompare, registerObservableClass, observe, focus, deep, transformInPlace, peek } from 'keck';
+import { cloneDeepWith, get as get$1, set, isEqual, unset, isEmpty } from 'lodash-es';
+
+const keckFormContext = createContext(null);
+function useFormContext(dontThrowOnMissingProvider = false) {
+    const form = useContext(keckFormContext);
+    if (!form) {
+        if (!dontThrowOnMissingProvider)
+            throw new Error('useFormContext must be used within a FormProvider.');
+        return null;
+    }
+    // NOTE: It is an invariant error (i.e. a developer mistake) to change the value of `throwOnMissingProvider` or
+    // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
+    // are called.
+    // biome-ignore lint/correctness/useHookAtTopLevel: hook is called unconditionally at runtime — the early return only fires on invariant violations (wrong provider usage), which are developer mistakes that are caught at startup
+    return useObserver(form);
+}
+
+/**
+ * Provides an existing KeckForm instance to descendant components (`useFormContext` and
+ * field-bound inputs).
+ *
+ * Use this when the form is created outside React — e.g. by a plain factory, store, or
+ * controller object that calls `new KeckForm(...)` directly. Forms created with `useForm` don't
+ * need this: `useForm` returns its own `FormProvider`, pre-bound to the form it created.
+ */
+function FormProvider(props) {
+    return (jsx(keckFormContext.Provider, { value: props.form, children: props.children }));
+}
 
 const $values = Symbol('$values');
 const $errors = Symbol('$errors');
@@ -463,21 +490,6 @@ class KeckForm {
 }
 registerObservableClass(KeckForm);
 
-const keckFormContext = createContext(null);
-function useFormContext(dontThrowOnMissingProvider = false) {
-    const form = useContext(keckFormContext);
-    if (!form) {
-        if (!dontThrowOnMissingProvider)
-            throw new Error('useFormContext must be used within a FormProvider.');
-        return null;
-    }
-    // NOTE: It is an invariant error (i.e. a developer mistake) to change the value of `throwOnMissingProvider` or
-    // whether this hook is called from inside a FormProvider at runtime, because it changes the number of hooks that
-    // are called.
-    // biome-ignore lint/correctness/useHookAtTopLevel: hook is called unconditionally at runtime — the early return only fires on invariant violations (wrong provider usage), which are developer mistakes that are caught at startup
-    return useObserver(form);
-}
-
 function useForm(options, deps) {
     const context = useFormContext(true);
     const contextFormReturn = options.tryContext && context
@@ -506,12 +518,9 @@ function useForm(options, deps) {
             onSubmitAttempt: options.onSubmitAttempt,
             meta: options.meta,
         });
-        const typedContext = keckFormContext;
         formRef.current = {
             form,
-            FormProvider: ({ children }) => {
-                return jsx(typedContext.Provider, { value: form, children: children });
-            },
+            FormProvider: ({ children }) => jsx(FormProvider, { form: form, children: children }),
         };
     }
     const form = useObserver(formRef.current.form, [formRef.current.form]);
@@ -540,5 +549,5 @@ const zodValidator = (schema) => {
     };
 };
 
-export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
+export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
 //# sourceMappingURL=index.js.map

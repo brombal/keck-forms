@@ -1,6 +1,7 @@
 import { useObserver } from 'keck/react';
 import type React from 'react';
 import { Fragment, useMemo, useRef } from 'react';
+import { FormProvider } from './FormProvider';
 import {
   type FormValidatorFn,
   KeckForm,
@@ -9,7 +10,7 @@ import {
   reassignOptions,
 } from './KeckForm';
 import type { ObjectOrUnknown } from './types';
-import { keckFormContext, useFormContext } from './useFormContext';
+import { useFormContext } from './useFormContext';
 
 export type UseFormReturn<
   TFormInput extends ObjectOrUnknown,
@@ -69,16 +70,9 @@ export function useForm<
       onSubmitAttempt: options.onSubmitAttempt,
       meta: options.meta,
     });
-    const typedContext = keckFormContext as React.Context<KeckForm<
-      TFormInput,
-      TFormOutput,
-      TMeta
-    > | null>;
     formRef.current = {
       form,
-      FormProvider: ({ children }) => {
-        return <typedContext.Provider value={form}>{children}</typedContext.Provider>;
-      },
+      FormProvider: ({ children }) => <FormProvider form={form}>{children}</FormProvider>,
     };
   }
 

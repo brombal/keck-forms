@@ -1,90 +1,7 @@
-import { IsNever, IsUnknown, Paths, LiteralUnion, Get } from 'type-fest';
+import * as react_jsx_runtime from 'react/jsx-runtime';
 import React from 'react';
+import { Paths, LiteralUnion, Get, IsNever, IsUnknown } from 'type-fest';
 import { z } from 'zod';
-
-declare const $values: unique symbol;
-declare const $errors: unique symbol;
-declare const $touched: unique symbol;
-
-type FormValidatorFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (input: TFormInput, setError: (field: StringPaths<TFormInput>, error: string | null | undefined | false, action?: 'push' | 'unshift' | 'replace') => void) => TFormOutput | null;
-type OnSubmitFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (output: TFormOutput, form: KeckForm<TFormInput, TFormOutput>) => Promise<void> | void;
-type OnSubmitAttemptFn = () => Promise<void> | void;
-/**
- * The public interface for the KeckForm class constructor parameters.
- */
-type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
-    initial: TFormInput;
-    validate?: FormValidatorFn<TFormInput, TFormOutput>;
-    onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
-    onSubmitAttempt?: OnSubmitAttemptFn;
-    meta?: TMeta;
-};
-declare const reassignOptions: unique symbol;
-/**
- * A KeckForm object represents the entire state of a form.
- */
-declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown = TFormInput, TMeta extends object = Record<string, unknown>> {
-    initial: TFormInput;
-    meta: TMeta;
-    [$values]: TFormInput;
-    [$touched]: any;
-    [$errors]: Record<string, string[]>;
-    private _output;
-    private _isSubmitting;
-    private _submitCount;
-    private _submitAttemptCount;
-    private _submitError;
-    private validator?;
-    private onSubmit;
-    private onSubmitAttempt;
-    /**
-     * Creates a KeckForm by providing an initial state and a validation function.
-     * @param options The initial state and validation function.
-     */
-    constructor(options: KeckFormOptions<TFormInput, TFormOutput, TMeta>);
-    [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>): void;
-    get output(): TFormOutput | null;
-    get value(): TFormInput;
-    setValues(values: TFormInput): void;
-    validate(): TFormOutput | null;
-    get isValid(): boolean;
-    get dirty(): boolean;
-    get touched(): boolean;
-    set touched(touched: boolean);
-    get errors(): string[];
-    get allErrors(): {
-        path: string;
-        errors: string[];
-    }[] | {
-        path: string;
-        errors: string[];
-    }[];
-    /**
-     * Resets the form state. You can optionally reset specific parts of the form state:
-     * - **values** - Reset the values to the initial values.
-     * - **touched** - Reset the touched state to null.
-     * - **submit** - Reset the submit count and submit attempt count to 0.
-     */
-    reset(resetOptions?: {
-        values?: boolean;
-        touched?: boolean;
-        submit?: boolean;
-    }): void;
-    field<TReturn = never, TPath extends string = StringPaths<TFormInput>>(path: IsNever<TReturn> extends true ? TPath & StringPaths<TFormInput> : string): IsNever<TReturn> extends true ? IsUnknown<TFormInput> extends true ? TypedKeckField<unknown> : TPath extends StringPaths<TFormInput> ? KeckFieldForPath<TFormInput, TPath> : never : TypedKeckField<TReturn>;
-    private _handleSubmit;
-    /**
-     * Call this function to submit the form.
-     *
-     * If the form is valid, the onSubmit function will be called and the submitCount field will be incremented.
-     *
-     * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
-     */
-    handleSubmit: (e?: any) => Promise<void>;
-    get isSubmitting(): boolean;
-    get submitCount(): number;
-    get submitAttemptCount(): number;
-    get submitError(): any;
-}
 
 type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
     form: KeckForm<TFormInput, TFormOutput, TMeta>;
@@ -184,10 +101,107 @@ declare abstract class KeckFieldBase<TFormInput extends ObjectOrUnknown, TString
 declare class KeckField<TFormInput extends ObjectOrUnknown, TStringPath extends string> extends KeckFieldBase<TFormInput, TStringPath> {
 }
 
+declare const $values: unique symbol;
+declare const $errors: unique symbol;
+declare const $touched: unique symbol;
+
+type FormValidatorFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (input: TFormInput, setError: (field: StringPaths<TFormInput>, error: string | null | undefined | false, action?: 'push' | 'unshift' | 'replace') => void) => TFormOutput | null;
+type OnSubmitFn<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown> = (output: TFormOutput, form: KeckForm<TFormInput, TFormOutput>) => Promise<void> | void;
+type OnSubmitAttemptFn = () => Promise<void> | void;
+/**
+ * The public interface for the KeckForm class constructor parameters.
+ */
+type KeckFormOptions<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>> = {
+    initial: TFormInput;
+    validate?: FormValidatorFn<TFormInput, TFormOutput>;
+    onSubmit?: OnSubmitFn<TFormInput, TFormOutput>;
+    onSubmitAttempt?: OnSubmitAttemptFn;
+    meta?: TMeta;
+};
+declare const reassignOptions: unique symbol;
+/**
+ * A KeckForm object represents the entire state of a form.
+ */
+declare class KeckForm<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown = TFormInput, TMeta extends object = Record<string, unknown>> {
+    initial: TFormInput;
+    meta: TMeta;
+    [$values]: TFormInput;
+    [$touched]: any;
+    [$errors]: Record<string, string[]>;
+    private _output;
+    private _isSubmitting;
+    private _submitCount;
+    private _submitAttemptCount;
+    private _submitError;
+    private validator?;
+    private onSubmit;
+    private onSubmitAttempt;
+    /**
+     * Creates a KeckForm by providing an initial state and a validation function.
+     * @param options The initial state and validation function.
+     */
+    constructor(options: KeckFormOptions<TFormInput, TFormOutput, TMeta>);
+    [reassignOptions](options: Partial<KeckFormOptions<TFormInput, TFormOutput>>): void;
+    get output(): TFormOutput | null;
+    get value(): TFormInput;
+    setValues(values: TFormInput): void;
+    validate(): TFormOutput | null;
+    get isValid(): boolean;
+    get dirty(): boolean;
+    get touched(): boolean;
+    set touched(touched: boolean);
+    get errors(): string[];
+    get allErrors(): {
+        path: string;
+        errors: string[];
+    }[] | {
+        path: string;
+        errors: string[];
+    }[];
+    /**
+     * Resets the form state. You can optionally reset specific parts of the form state:
+     * - **values** - Reset the values to the initial values.
+     * - **touched** - Reset the touched state to null.
+     * - **submit** - Reset the submit count and submit attempt count to 0.
+     */
+    reset(resetOptions?: {
+        values?: boolean;
+        touched?: boolean;
+        submit?: boolean;
+    }): void;
+    field<TReturn = never, TPath extends string = StringPaths<TFormInput>>(path: IsNever<TReturn> extends true ? TPath & StringPaths<TFormInput> : string): IsNever<TReturn> extends true ? IsUnknown<TFormInput> extends true ? TypedKeckField<unknown> : TPath extends StringPaths<TFormInput> ? KeckFieldForPath<TFormInput, TPath> : never : TypedKeckField<TReturn>;
+    private _handleSubmit;
+    /**
+     * Call this function to submit the form.
+     *
+     * If the form is valid, the onSubmit function will be called and the submitCount field will be incremented.
+     *
+     * If the form is not valid, the onSubmitAttempt function will be called and the submitAttemptCount field will be incremented.
+     */
+    handleSubmit: (e?: any) => Promise<void>;
+    get isSubmitting(): boolean;
+    get submitCount(): number;
+    get submitAttemptCount(): number;
+    get submitError(): any;
+}
+
+/**
+ * Provides an existing KeckForm instance to descendant components (`useFormContext` and
+ * field-bound inputs).
+ *
+ * Use this when the form is created outside React — e.g. by a plain factory, store, or
+ * controller object that calls `new KeckForm(...)` directly. Forms created with `useForm` don't
+ * need this: `useForm` returns its own `FormProvider`, pre-bound to the form it created.
+ */
+declare function FormProvider<TFormInput extends ObjectOrUnknown, TFormOutput extends ObjectOrUnknown, TMeta extends object = Record<string, unknown>>(props: {
+    form: KeckForm<TFormInput, TFormOutput, TMeta>;
+    children: React.ReactNode | React.ReactNode[];
+}): react_jsx_runtime.JSX.Element;
+
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider: true): KeckForm<TFormInput, TFormOutput> | null;
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider?: false): KeckForm<TFormInput, TFormOutput>;
 
 declare const zodValidator: <TSchema extends z.Schema<any>>(schema: TSchema) => FormValidatorFn<z.input<TSchema>, z.output<TSchema>>;
 
-export { KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
+export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, useForm, useFormContext, zodValidator };
 export type { FormInputType, FormMetaType, FormOutputType, KeckFormOptions };
