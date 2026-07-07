@@ -1,7 +1,6 @@
 import * as react_jsx_runtime from 'react/jsx-runtime';
 import React from 'react';
 import { Paths, LiteralUnion, Get, IsNever, IsUnknown } from 'type-fest';
-import { z } from 'zod';
 
 /**
  * The Standard Schema interface (https://standardschema.dev) — a common interface implemented by
@@ -294,17 +293,5 @@ declare const standardSchemaValidator: <TSchema extends StandardSchemaV1, TFormI
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider: true): KeckForm<TFormInput, TFormOutput> | null;
 declare function useFormContext<TFormInput extends ObjectOrUnknown = unknown, TFormOutput extends ObjectOrUnknown = unknown>(dontThrowOnMissingProvider?: false): KeckForm<TFormInput, TFormOutput>;
 
-/**
- * Creates a FormValidatorFn from a zod schema. By default the validator's input type is the
- * schema's input type; pass TFormInput explicitly when the form state is intentionally wider than
- * the schema input (the validator safeParses any value at runtime, so this is always safe).
- *
- * @deprecated Use the `schema` form option or `standardSchemaValidator` instead — zod >= 3.24
- * implements the Standard Schema interface, and both provide the same behavior and typing
- * (including the input-widening TFormInput parameter). zodValidator will be removed in
- * keck-forms 4.
- */
-declare const zodValidator: <TSchema extends z.Schema<any>, TFormInput extends ObjectOrUnknown = z.input<TSchema>>(schema: TSchema) => FormValidatorFn<TFormInput, z.output<TSchema>>;
-
-export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, StandardSchemaV1, standardSchemaValidator, useForm, useFormContext, zodValidator };
+export { FormProvider, KeckField, KeckFieldArray, KeckFieldObject, KeckForm, StandardSchemaV1, standardSchemaValidator, useForm, useFormContext };
 export type { FormInputType, FormMetaType, FormOutputType, FormValidatorFn, KeckFormOptions, OnSubmitAttemptFn, OnSubmitFn };

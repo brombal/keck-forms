@@ -1,7 +1,7 @@
 import { focus, observe } from 'keck';
 import { KeckFieldArray } from 'keck-forms/KeckFieldArray';
 import { KeckForm } from 'keck-forms/KeckForm';
-import { zodValidator } from 'keck-forms/zodValidator';
+import { standardSchemaValidator } from 'keck-forms/standardSchemaValidator';
 import { vi } from 'vitest';
 import { z } from 'zod';
 
@@ -244,7 +244,7 @@ describe('array', () => {
       const form = observe(
         new KeckForm<{ name: string; friends: Friend[] }>({
           initial: { name: 'valid', friends: initial.friends },
-          validate: zodValidator(
+          validate: standardSchemaValidator(
             z.object({
               name: z.string().min(1),
               friends: z.array(z.object({ name: z.string().min(1), age: z.number() })),
@@ -291,7 +291,7 @@ describe('array', () => {
     const validatedForm = () =>
       new KeckForm({
         initial,
-        validate: zodValidator(
+        validate: standardSchemaValidator(
           z.object({
             friends: z.array(
               z.object({ name: z.string().min(1, 'Name required'), age: z.number().min(0) }),

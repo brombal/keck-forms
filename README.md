@@ -25,7 +25,7 @@ Here’s a simple form example to get you started:
 
 ```tsx
 import React from "react";
-import { useForm, zodValidator } from "keck-forms";
+import { useForm } from "keck-forms";
 import { z } from "zod";
 
 // Define your form schema for validation
@@ -104,7 +104,7 @@ import { useForm } from "keck-forms";
 
 const { field, FormProvider } = useForm({
   initial: initialData,
-  validate: zodValidator(schema),
+  schema,
 });
 ```
 
@@ -196,7 +196,8 @@ function useForm<TInput extends object, TOutput extends object>(options: {
 - `initial`: The initial form state.
 - `schema`: A [Standard Schema](https://standardschema.dev) to validate the form — e.g. a zod
   (>= 3.24), valibot, or arktype schema. Async schemas are not supported.
-- `validate`: A validation function (e.g. from `zodValidator`). Takes precedence over `schema`.
+- `validate`: A validation function (e.g. from `standardSchemaValidator`, or hand-written).
+  Takes precedence over `schema`.
 
 **Returns**:
 
@@ -210,7 +211,7 @@ from `validate`'s type, otherwise from `initial`. When a schema or validator dri
 value is fine for a `string | null` schema input. Explicit type arguments always win.
 
 One TypeScript limitation to know: an *inline* generic validator call combined with an
-*unannotated* `onSubmit` parameter (`validate: zodValidator(schema), onSubmit(output) {...}`)
+*unannotated* `onSubmit` parameter (`validate: standardSchemaValidator(schema), onSubmit(output) {...}`)
 prevents the validator from driving inference (you'll get an error on the `validate` line). Hoist
 the validator to a `const`, annotate `onSubmit`'s parameter, or use the `schema` option — a plain
 property never has this problem.

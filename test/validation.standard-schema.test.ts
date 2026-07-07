@@ -1,5 +1,5 @@
 import { KeckForm } from 'keck-forms/KeckForm';
-import { zodValidator } from 'keck-forms/zodValidator';
+import { standardSchemaValidator } from 'keck-forms/standardSchemaValidator';
 import { z } from 'zod';
 
 describe('zod validation', () => {
@@ -25,7 +25,7 @@ describe('zod validation', () => {
 
     const form = new KeckForm({
       initial,
-      validate: zodValidator(schema),
+      validate: standardSchemaValidator(schema),
     });
 
     expect(form.isValid).toBe(true);

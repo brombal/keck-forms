@@ -1,6 +1,6 @@
 import { focus, observe } from 'keck';
 import { KeckForm } from 'keck-forms/KeckForm';
-import { zodValidator } from 'keck-forms/zodValidator';
+import { standardSchemaValidator } from 'keck-forms/standardSchemaValidator';
 import { vi } from 'vitest';
 import { z } from 'zod';
 
@@ -96,7 +96,7 @@ describe('validation', () => {
 
     const form = new KeckForm({
       initial,
-      validate: zodValidator(
+      validate: standardSchemaValidator(
         z.object({
           name: z.string().min(1, 'Name is required'),
           age: z.number().min(18),

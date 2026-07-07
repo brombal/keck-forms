@@ -1,6 +1,6 @@
 import { focus, observe } from 'keck';
 import { KeckForm, reassignOptions } from 'keck-forms/KeckForm';
-import { zodValidator } from 'keck-forms/zodValidator';
+import { standardSchemaValidator } from 'keck-forms/standardSchemaValidator';
 import { vi } from 'vitest';
 import { z } from 'zod';
 
@@ -75,7 +75,9 @@ describe('observability', () => {
     const form = observe(
       new KeckForm({
         initial: { name: '', age: 20 },
-        validate: zodValidator(z.object({ name: z.string().min(1), age: z.number().min(18) })),
+        validate: standardSchemaValidator(
+          z.object({ name: z.string().min(1), age: z.number().min(18) }),
+        ),
       }),
     );
 
@@ -98,7 +100,7 @@ describe('observability', () => {
     const form = observe(
       new KeckForm({
         initial: { name: '', address: { street: '', city: '' } },
-        validate: zodValidator(
+        validate: standardSchemaValidator(
           z.object({
             name: z.string().min(1),
             address: z.object({ street: z.string().min(1), city: z.string().min(1) }),

@@ -1,8 +1,8 @@
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { KeckForm } from 'keck-forms/KeckForm';
+import { standardSchemaValidator } from 'keck-forms/standardSchemaValidator';
 import { useForm } from 'keck-forms/useForm';
 import { useFormContext } from 'keck-forms/useFormContext';
-import { zodValidator } from 'keck-forms/zodValidator';
 import { vi } from 'vitest';
 import { z } from 'zod';
 
@@ -147,7 +147,7 @@ describe('react', () => {
     const { result } = renderHook(() =>
       useForm({
         initial: { name: '' },
-        validate: zodValidator(z.object({ name: z.string().min(1, 'Required') })),
+        validate: standardSchemaValidator(z.object({ name: z.string().min(1, 'Required') })),
       }),
     );
 

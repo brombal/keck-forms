@@ -1,6 +1,6 @@
 import { unwrap } from 'keck';
 import { KeckForm, reassignOptions } from 'keck-forms/KeckForm';
-import { zodValidator } from 'keck-forms/zodValidator';
+import { standardSchemaValidator } from 'keck-forms/standardSchemaValidator';
 import { vi } from 'vitest';
 import { z } from 'zod';
 
@@ -11,7 +11,7 @@ describe('submit', () => {
 
     const form = new KeckForm({
       initial,
-      validate: zodValidator(
+      validate: standardSchemaValidator(
         z.object({
           name: z.string(),
           age: z.number().min(18),
@@ -35,7 +35,7 @@ describe('submit', () => {
 
     const form = new KeckForm({
       initial,
-      validate: zodValidator(
+      validate: standardSchemaValidator(
         z.object({
           name: z.string(),
           age: z.number().min(18),
@@ -59,7 +59,7 @@ describe('submit', () => {
     let resolve!: () => void;
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: zodValidator(z.object({ name: z.string() })),
+      validate: standardSchemaValidator(z.object({ name: z.string() })),
       onSubmit: () =>
         new Promise<void>((r) => {
           resolve = r;
@@ -78,7 +78,7 @@ describe('submit', () => {
     const error = new Error('submission failed');
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: zodValidator(z.object({ name: z.string() })),
+      validate: standardSchemaValidator(z.object({ name: z.string() })),
       onSubmit: async () => {
         throw error;
       },
@@ -95,7 +95,7 @@ describe('submit', () => {
     const error = new Error('boom');
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: zodValidator(z.object({ name: z.string() })),
+      validate: standardSchemaValidator(z.object({ name: z.string() })),
       onSubmit: () => {
         throw error;
       },
@@ -114,7 +114,7 @@ describe('submit', () => {
     let checked = false;
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: zodValidator(z.object({ name: z.string() })),
+      validate: standardSchemaValidator(z.object({ name: z.string() })),
       onSubmit: (_output, f) => {
         const raw = unwrap(f.value);
         expect(unwrap(raw)).toBe(raw); // a single unwrap reaches the raw object
@@ -132,7 +132,7 @@ describe('submit', () => {
   test('handleSubmit calls e.preventDefault when given an event-like object', async () => {
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: zodValidator(z.object({ name: z.string() })),
+      validate: standardSchemaValidator(z.object({ name: z.string() })),
     });
     const e = { preventDefault: vi.fn() };
 
@@ -144,7 +144,7 @@ describe('submit', () => {
   test('reassignOptions updates onSubmit and onSubmitAttempt', async () => {
     const form = new KeckForm({
       initial: { name: 'John' },
-      validate: zodValidator(z.object({ name: z.string().min(1) })),
+      validate: standardSchemaValidator(z.object({ name: z.string().min(1) })),
     });
 
     const onSubmit = vi.fn() as () => void;

@@ -29,14 +29,14 @@ export type UseFormReturn<
  * 1. `schema` (a Standard Schema, e.g. zod/valibot/arktype): the form input/output types come
  *    from the schema, and `initial` must *satisfy* (be assignable to, not exactly equal) the
  *    schema's input type.
- * 2. `validate` (a FormValidatorFn, e.g. from zodValidator): the form input/output types come
+ * 2. `validate` (a FormValidatorFn, e.g. from standardSchemaValidator): the form input/output types come
  *    from the validator function's type, with the same satisfies-semantics for `initial`. If the
  *    validator's type doesn't determine the input type (a zero-param stub, or an inline function
  *    with an unannotated parameter), the input type falls back to `initial`'s type: `initial` is
  *    declared as `TFormInput & {}`, a LOW-priority inference site, so its candidate is used only
  *    when the validator contributes none. Do not "simplify" the `& {}` away — it is load-bearing.
  *    NOTE (TS limitation): if `validate` is an *inline generic call* (e.g.
- *    `validate: zodValidator(schema)`) AND the options object also contains a context-sensitive
+ *    `validate: standardSchemaValidator(schema)`) AND the options object also contains a context-sensitive
  *    member (an unannotated `onSubmit(output)`), TypeScript defers the whole object during
  *    inference and the validator cannot drive the types (you get a loud error on the validate
  *    line). Hoist the validator to a const, annotate onSubmit's parameter, or use the `schema`

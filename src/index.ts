@@ -14,4 +14,3 @@ export { standardSchemaValidator } from './standardSchemaValidator';
 export type { FormInputType, FormMetaType, FormOutputType } from './types';
 export { useForm } from './useForm';
 export { useFormContext } from './useFormContext';
-export { zodValidator } from './zodValidator';
