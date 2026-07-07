@@ -59,7 +59,7 @@
     "zod": "^3"
   },
   "dependencies": {
-    "keck": "^2.3.2",
+    "keck": "^2.3.4",
     "lodash-es": "^4.17.21",
     "type-fest": "^5.2.0"
   }

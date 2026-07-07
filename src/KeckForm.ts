@@ -237,6 +237,9 @@ export class KeckForm<
       }
     } catch (e: any) {
       this._submitError = e;
+      // Surface the error in addition to storing it -- a throwing onSubmit/onSubmitAttempt
+      // handler would otherwise fail completely silently unless the app renders submitError.
+      console.error('KeckForm: error thrown from submit handler', e);
     } finally {
       this._isSubmitting = false;
     }

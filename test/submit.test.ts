@@ -90,6 +90,45 @@ describe('submit', () => {
     expect(form.submitCount).toBe(1); // incremented before onSubmit throws
   });
 
+  test('a throwing submit handler is surfaced via console.error, not just stored', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const error = new Error('boom');
+    const form = new KeckForm({
+      initial: { name: 'John' },
+      validate: zodValidator(z.object({ name: z.string() })),
+      onSubmit: () => {
+        throw error;
+      },
+    });
+
+    await form.handleSubmit();
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('KeckForm'), error);
+    consoleSpy.mockRestore();
+  });
+
+  test('onSubmit receives a singly-wrapped form whose value unwraps to the raw object', async () => {
+    // Regression: KeckForm.value is a class getter returning an observable child; with
+    // keck < 2.3.4 the getter result was double-wrapped, so unwrap() left a live proxy and
+    // structuredClone(unwrap(f.value)) threw.
+    let checked = false;
+    const form = new KeckForm({
+      initial: { name: 'John' },
+      validate: zodValidator(z.object({ name: z.string() })),
+      onSubmit: (_output, f) => {
+        const raw = unwrap(f.value);
+        expect(unwrap(raw)).toBe(raw); // a single unwrap reaches the raw object
+        expect(() => structuredClone(raw)).not.toThrow();
+        expect(structuredClone(raw)).toEqual({ name: 'John' });
+        checked = true;
+      },
+    });
+
+    await form.handleSubmit();
+    expect(form.submitError).toBeNull();
+    expect(checked).toBe(true);
+  });
+
   test('handleSubmit calls e.preventDefault when given an event-like object', async () => {
     const form = new KeckForm({
       initial: { name: 'John' },
