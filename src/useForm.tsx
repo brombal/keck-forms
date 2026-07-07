@@ -28,7 +28,10 @@ export type UseFormReturn<
  *
  * 1. `schema` (a Standard Schema, e.g. zod/valibot/arktype): the form input/output types come
  *    from the schema, and `initial` must *satisfy* (be assignable to, not exactly equal) the
- *    schema's input type.
+ *    schema's input type. When the form state is intentionally WIDER than the schema input
+ *    (extra fields, or looser field types than the schema accepts), pass both type arguments
+ *    explicitly: `useForm<typeof mySchema, MyWiderFormInput>({ schema: mySchema, ... })`. The
+ *    schema still validates the full value at runtime; only the form's input type widens.
  * 2. `validate` (a FormValidatorFn, e.g. from standardSchemaValidator): the form input/output types come
  *    from the validator function's type, with the same satisfies-semantics for `initial`. If the
  *    validator's type doesn't determine the input type (a zero-param stub, or an inline function
@@ -47,28 +50,20 @@ export type UseFormReturn<
 
 export function useForm<
   TSchema extends StandardSchemaV1<object, object>,
+  TFormInput extends object = StandardSchemaV1.InferInput<TSchema>,
   TMeta extends object = Record<string, unknown>,
 >(
   options: {
     tryContext?: boolean;
-    initial:
-      | NoInfer<StandardSchemaV1.InferInput<TSchema>>
-      | (() => NoInfer<StandardSchemaV1.InferInput<TSchema>>);
+    initial: NoInfer<TFormInput> | (() => NoInfer<TFormInput>);
     schema: TSchema;
     validate?: undefined;
-    onSubmit?: OnSubmitFn<
-      StandardSchemaV1.InferInput<TSchema>,
-      StandardSchemaV1.InferOutput<TSchema>
-    >;
+    onSubmit?: OnSubmitFn<TFormInput, StandardSchemaV1.InferOutput<TSchema>>;
     onSubmitAttempt?: OnSubmitAttemptFn;
     meta?: TMeta;
   },
   deps?: any[],
-): UseFormReturn<
-  StandardSchemaV1.InferInput<TSchema>,
-  StandardSchemaV1.InferOutput<TSchema>,
-  TMeta
->;
+): UseFormReturn<TFormInput, StandardSchemaV1.InferOutput<TSchema>, TMeta>;
 
 export function useForm<
   TFormInput extends object,

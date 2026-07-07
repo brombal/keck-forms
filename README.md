@@ -210,6 +210,14 @@ from `validate`'s type, otherwise from `initial`. When a schema or validator dri
 `initial` only needs to *satisfy* the input type (be assignable to it) — e.g. a `string` initial
 value is fine for a `string | null` schema input. Explicit type arguments always win.
 
+When the form state is intentionally *wider* than the schema input (extra UI-only fields, or
+looser field types than any schema variant), pass both type arguments explicitly — the schema
+still validates the full value at runtime; only the form's input type widens:
+
+```tsx
+useForm<typeof mySchema, MyWiderFormInput>({ initial, schema: mySchema, ... });
+```
+
 One TypeScript limitation to know: an *inline* generic validator call combined with an
 *unannotated* `onSubmit` parameter (`validate: standardSchemaValidator(schema), onSubmit(output) {...}`)
 prevents the validator from driving inference (you'll get an error on the `validate` line). Hoist

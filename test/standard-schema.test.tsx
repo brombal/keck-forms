@@ -121,6 +121,32 @@ describe('useForm schema option', () => {
     expect(submitted).toEqual({ name: 'John', year: 1990 });
   });
 
+  test('supports a widened form input type via explicit type arguments', async () => {
+    const narrowSchema = z.object({
+      name: z.string().min(1, 'Name is required'),
+    });
+    // Form state is wider than the schema input: an extra UI-only field.
+    type WideInput = { name: string; uiOnlyFlag: boolean };
+
+    let submitted: unknown;
+    const { result } = renderHook(() =>
+      useForm<typeof narrowSchema, WideInput>({
+        initial: { name: 'John', uiOnlyFlag: true },
+        schema: narrowSchema,
+        onSubmit(output) {
+          // output is schema-driven; input fields keep the wide type
+          submitted = output.name;
+        },
+      }),
+    );
+
+    // Widened field paths are available and typed
+    expect(result.current.form.field('uiOnlyFlag').value).toBe(true);
+    expect(result.current.form.isValid).toBe(true);
+    await act(() => result.current.form.handleSubmit());
+    expect(submitted).toBe('John');
+  });
+
   test('reports schema errors on fields', () => {
     const { result } = renderHook(() =>
       useForm({

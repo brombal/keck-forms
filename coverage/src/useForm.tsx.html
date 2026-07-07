@@ -218,12 +218,7 @@
 <a name='L153'></a><a href='#L153'>153</a>
 <a name='L154'></a><a href='#L154'>154</a>
 <a name='L155'></a><a href='#L155'>155</a>
-<a name='L156'></a><a href='#L156'>156</a>
-<a name='L157'></a><a href='#L157'>157</a>
-<a name='L158'></a><a href='#L158'>158</a>
-<a name='L159'></a><a href='#L159'>159</a>
-<a name='L160'></a><a href='#L160'>160</a>
-<a name='L161'></a><a href='#L161'>161</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L156'></a><a href='#L156'>156</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -323,39 +318,34 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -363,14 +353,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -378,7 +368,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -413,7 +403,10 @@ export type UseFormReturn&lt;
  *
  * 1. `schema` (a Standard Schema, e.g. zod/valibot/arktype): the form input/output types come
  *    from the schema, and `initial` must *satisfy* (be assignable to, not exactly equal) the
- *    schema's input type.
+ *    schema's input type. When the form state is intentionally WIDER than the schema input
+ *    (extra fields, or looser field types than the schema accepts), pass both type arguments
+ *    explicitly: `useForm&lt;typeof mySchema, MyWiderFormInput&gt;({ schema: mySchema, ... })`. The
+ *    schema still validates the full value at runtime; only the form's input type widens.
  * 2. `validate` (a FormValidatorFn, e.g. from standardSchemaValidator): the form input/output types come
  *    from the validator function's type, with the same satisfies-semantics for `initial`. If the
  *    validator's type doesn't determine the input type (a zero-param stub, or an inline function
@@ -432,28 +425,20 @@ export type UseFormReturn&lt;
 &nbsp;
 export function useForm&lt;
   TSchema extends StandardSchemaV1&lt;object, object&gt;,
+  TFormInput extends object = StandardSchemaV1.InferInput&lt;TSchema&gt;,
   TMeta extends object = Record&lt;string, unknown&gt;,
 &gt;(
   options: {
     tryContext?: boolean;
-    initial:
-      | NoInfer&lt;StandardSchemaV1.InferInput&lt;TSchema&gt;&gt;
-      | (() =&gt; NoInfer&lt;StandardSchemaV1.InferInput&lt;TSchema&gt;&gt;);
+    initial: NoInfer&lt;TFormInput&gt; | (() =&gt; NoInfer&lt;TFormInput&gt;);
     schema: TSchema;
     validate?: undefined;
-    onSubmit?: OnSubmitFn&lt;
-      StandardSchemaV1.InferInput&lt;TSchema&gt;,
-      StandardSchemaV1.InferOutput&lt;TSchema&gt;
-    &gt;;
+    onSubmit?: OnSubmitFn&lt;TFormInput, StandardSchemaV1.InferOutput&lt;TSchema&gt;&gt;;
     onSubmitAttempt?: OnSubmitAttemptFn;
     meta?: TMeta;
   },
   deps?: any[],
-): UseFormReturn&lt;
-  StandardSchemaV1.InferInput&lt;TSchema&gt;,
-  StandardSchemaV1.InferOutput&lt;TSchema&gt;,
-  TMeta
-&gt;;
+): UseFormReturn&lt;TFormInput, StandardSchemaV1.InferOutput&lt;TSchema&gt;, TMeta&gt;;
 &nbsp;
 export function useForm&lt;
   TFormInput extends object,
@@ -550,7 +535,7 @@ export function useForm&lt;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-07T21:02:45.354Z
+                at 2026-07-07T21:17:57.274Z
             </div>
         <script src="../prettify.js"></script>
         <script>

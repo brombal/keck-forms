@@ -72,15 +72,15 @@ type UseFormReturn<TFormInput extends ObjectOrUnknown, TFormOutput extends Objec
         children: React.ReactNode | React.ReactNode[];
     }>;
 };
-declare function useForm<TSchema extends StandardSchemaV1<object, object>, TMeta extends object = Record<string, unknown>>(options: {
+declare function useForm<TSchema extends StandardSchemaV1<object, object>, TFormInput extends object = StandardSchemaV1.InferInput<TSchema>, TMeta extends object = Record<string, unknown>>(options: {
     tryContext?: boolean;
-    initial: NoInfer<StandardSchemaV1.InferInput<TSchema>> | (() => NoInfer<StandardSchemaV1.InferInput<TSchema>>);
+    initial: NoInfer<TFormInput> | (() => NoInfer<TFormInput>);
     schema: TSchema;
     validate?: undefined;
-    onSubmit?: OnSubmitFn<StandardSchemaV1.InferInput<TSchema>, StandardSchemaV1.InferOutput<TSchema>>;
+    onSubmit?: OnSubmitFn<TFormInput, StandardSchemaV1.InferOutput<TSchema>>;
     onSubmitAttempt?: OnSubmitAttemptFn;
     meta?: TMeta;
-}, deps?: any[]): UseFormReturn<StandardSchemaV1.InferInput<TSchema>, StandardSchemaV1.InferOutput<TSchema>, TMeta>;
+}, deps?: any[]): UseFormReturn<TFormInput, StandardSchemaV1.InferOutput<TSchema>, TMeta>;
 declare function useForm<TFormInput extends object, TFormOutput extends object = TFormInput, TMeta extends object = Record<string, unknown>>(options: {
     tryContext?: boolean;
     initial: (TFormInput & {}) | (() => TFormInput & {});
